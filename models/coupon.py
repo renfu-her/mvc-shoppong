@@ -1,6 +1,6 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from app import db
+from decimal import Decimal
+from database import db
 
 class Coupon(db.Model):
     __tablename__ = 'coupons'
@@ -12,9 +12,9 @@ class Coupon(db.Model):
     
     # Discount type and amount
     discount_type = db.Column(db.String(20), nullable=False)  # percentage, fixed_amount
-    discount_value = db.Column(db.Decimal(10, 2), nullable=False)
-    minimum_amount = db.Column(db.Decimal(10, 2), default=0)  # Minimum order amount to use coupon
-    maximum_discount = db.Column(db.Decimal(10, 2), nullable=True)  # Maximum discount amount for percentage coupons
+    discount_value = db.Column(db.Numeric(10, 2), nullable=False)
+    minimum_amount = db.Column(db.Numeric(10, 2), default=0)  # Minimum order amount to use coupon
+    maximum_discount = db.Column(db.Numeric(10, 2), nullable=True)  # Maximum discount amount for percentage coupons
     
     # Usage limits
     usage_limit = db.Column(db.Integer, nullable=True)  # Total usage limit

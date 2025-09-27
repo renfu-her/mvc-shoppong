@@ -411,7 +411,13 @@ $(document).ready(function() {
                         button.html('<i class="fas fa-shopping-cart"></i>');
                         button.removeClass('btn-success').addClass('btn-outline-primary');
                     }, 2000);
+                } else {
+                    alert('Error: ' + (response.message || 'Failed to add item to cart'));
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', error);
+                alert('Error adding product to cart');
             }
         });
     });

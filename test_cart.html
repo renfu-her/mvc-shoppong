@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart Test</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+</head>
+<body>
+    <h1>Cart Test Page</h1>
+    
+    <div>
+        <h3>Add to Cart Test</h3>
+        <button id="add-product-1" class="add-to-cart" data-product-id="1">Add Product 1</button>
+        <button id="add-product-2" class="add-to-cart" data-product-id="2">Add Product 2</button>
+        <button id="add-product-3" class="add-to-cart" data-product-id="3">Add Product 3</button>
+    </div>
+    
+    <div>
+        <h3>Cart Count: <span id="cart-count">0</span></h3>
+        <button id="get-count">Get Cart Count</button>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <script>
+    $(document).ready(function() {
+        // Add to cart functionality
+        $('.add-to-cart').click(function() {
+            var productId = $(this).data('product-id');
+            var button = $(this);
+            var originalText = button.text();
+            
+            button.text('Adding...').prop('disabled', true);
+            
+            $.ajax({
+                url: '/api/cart/add',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                }),
+                success: function(response) {
+                    console.log('Success:', response);
+                    if (response.success) {
+                        $('#cart-count').text(response.cart_count);
+                        button.text('Added!').removeClass('btn-primary').addClass('btn-success');
+                        $('#messages').append('<p style="color: green;">✓ Product ' + productId + ' added to cart</p>');
+                        setTimeout(function() {
+                            button.text(originalText).removeClass('btn-success').addClass('btn-primary').prop('disabled', false);
+                        }, 2000);
+                    } else {
+                        $('#messages').append('<p style="color: red;">✗ Error: ' + (response.message || 'Failed to add item') + '</p>');
+                        button.text(originalText).prop('disabled', false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    console.error('Response:', xhr.responseText);
+                    $('#messages').append('<p style="color: red;">✗ AJAX Error: ' + error + '</p>');
+                    button.text(originalText).prop('disabled', false);
+                }
+            });
+        });
+        
+        // Get cart count
+        $('#get-count').click(function() {
+            $.ajax({
+                url: '/api/cart/count',
+                method: 'GET',
+                success: function(response) {
+                    console.log('Cart count:', response);
+                    $('#cart-count').text(response.count);
+                    $('#messages').append('<p style="color: blue;">ℹ Cart count: ' + response.count + '</p>');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Count Error:', error);
+                    $('#messages').append('<p style="color: red;">✗ Count Error: ' + error + '</p>');
+                }
+            });
+        });
+        
+        // Load initial cart count
+        $('#get-count').click();
+    });
+    </script>
+    
+    <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+    .add-to-cart { background: #007bff; color: white; border: none; border-radius: 4px; }
+    .btn-success { background: #28a745 !important; }
+    #messages { margin-top: 20px; }
+    </style>
+</body>
+</html>

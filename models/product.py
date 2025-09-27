@@ -1,6 +1,6 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from app import db
+from decimal import Decimal
+from database import db
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -13,8 +13,8 @@ class Product(db.Model):
     sku = db.Column(db.String(100), unique=True, nullable=False)
     
     # Pricing
-    regular_price = db.Column(db.Decimal(10, 2), nullable=False)
-    sale_price = db.Column(db.Decimal(10, 2), nullable=True)
+    regular_price = db.Column(db.Numeric(10, 2), nullable=False)
+    sale_price = db.Column(db.Numeric(10, 2), nullable=True)
     
     # Inventory
     stock_quantity = db.Column(db.Integer, default=0)
@@ -22,7 +22,7 @@ class Product(db.Model):
     stock_status = db.Column(db.String(20), default='instock')  # instock, outofstock
     
     # Product details
-    weight = db.Column(db.Decimal(8, 2), nullable=True)
+    weight = db.Column(db.Numeric(8, 2), nullable=True)
     dimensions = db.Column(db.String(100), nullable=True)  # LxWxH
     color = db.Column(db.String(50), nullable=True)
     size = db.Column(db.String(50), nullable=True)

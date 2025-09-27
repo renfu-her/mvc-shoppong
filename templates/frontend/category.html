@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        {% if category.parent %}
+                            {% if category.parent.parent %}
+                                <li class="breadcrumb-item"><a href="{{ url_for('frontend.category', slug=category.parent.parent.slug) }}">{{ category.parent.parent.name }}</a></li>
+                            {% endif %}
+                            <li class="breadcrumb-item"><a href="{{ url_for('frontend.category', slug=category.parent.slug) }}">{{ category.parent.name }}</a></li>
+                        {% endif %}
+                        <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Header -->
+<div class="category-header py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1 class="display-4 fw-bold text-primary">{{ category.name }}</h1>
+                {% if category.description %}
+                    <p class="lead text-muted">{{ category.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Content -->
+<div class="category-content py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-3 col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Categories</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if subcategories %}
+                            <ul class="list-unstyled">
+                                {% for subcat in subcategories %}
+                                    <li class="mb-2">
+                                        <a href="{{ url_for('frontend.category', slug=subcat.slug) }}" 
+                                           class="text-decoration-none {% if subcat.id == category.id %}fw-bold text-primary{% else %}text-dark{% endif %}">
+                                            {{ subcat.name }}
+                                            <span class="badge bg-secondary ms-2">{{ subcat.products|length }}</span>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Price Filter -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Price Range</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="GET" id="priceFilter">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" class="form-control" name="min_price" placeholder="Min" value="{{ request.args.get('min_price', '') }}">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control" name="max_price" placeholder="Max" value="{{ request.args.get('max_price', '') }}">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm mt-2 w-100">Filter</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sort Options -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Sort By</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="GET" id="sortFilter">
+                            <input type="hidden" name="min_price" value="{{ request.args.get('min_price', '') }}">
+                            <input type="hidden" name="max_price" value="{{ request.args.get('max_price', '') }}">
+                            <select name="sort" class="form-select" onchange="this.form.submit()">
+                                <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Name A-Z</option>
+                                <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                                <option value="price" {% if request.args.get('sort') == 'price' %}selected{% endif %}>Price Low to High</option>
+                                <option value="price_desc" {% if request.args.get('sort') == 'price_desc' %}selected{% endif %}>Price High to Low</option>
+                                <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="col-lg-9 col-md-8">
+                <!-- Products Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4>{{ products.total }} Products Found</h4>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="gridView">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="listView">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="row" id="productsContainer">
+                    {% for product in products.items %}
+                        <div class="col-lg-4 col-md-6 mb-4 product-item">
+                            <div class="card h-100 product-card">
+                                <div class="position-relative">
+                                    {% if product.images %}
+                                        <img src="{{ product.images[0].image_url }}" class="card-img-top" alt="{{ product.name }}" style="height: 250px; object-fit: cover;">
+                                    {% else %}
+                                        <img src="/static/images/placeholder.jpg" class="card-img-top" alt="{{ product.name }}" style="height: 250px; object-fit: cover;">
+                                    {% endif %}
+                                    
+                                    {% if product.sale_price and product.sale_price < product.regular_price %}
+                                        <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                                            -{{ ((product.regular_price - product.sale_price) / product.regular_price * 100)|round|int }}%
+                                        </span>
+                                    {% endif %}
+                                    
+                                    <div class="product-actions position-absolute top-0 end-0 m-2">
+                                        <button class="btn btn-sm btn-light rounded-circle mb-1" title="Add to Wishlist">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light rounded-circle" title="Quick View">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title">
+                                        <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">
+                                            {{ product.name }}
+                                        </a>
+                                    </h6>
+                                    
+                                    <div class="rating mb-2">
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="far fa-star text-warning"></i>
+                                        <small class="text-muted ms-1">(4.0)</small>
+                                    </div>
+                                    
+                                    <div class="price mb-3">
+                                        {% if product.sale_price and product.sale_price < product.regular_price %}
+                                            <span class="h5 text-primary">${{ "%.2f"|format(product.sale_price) }}</span>
+                                            <span class="text-muted text-decoration-line-through ms-2">${{ "%.2f"|format(product.regular_price) }}</span>
+                                        {% else %}
+                                            <span class="h5 text-primary">${{ "%.2f"|format(product.regular_price) }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mt-auto">
+                                        <button class="btn btn-primary w-100 add-to-cart" data-product-id="{{ product.id }}">
+                                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if products.pages > 1 %}
+                    <nav aria-label="Products pagination" class="mt-5">
+                        <ul class="pagination justify-content-center">
+                            {% if products.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('frontend.category', slug=category.slug, page=products.prev_num, **request.args) }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in products.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != products.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('frontend.category', slug=category.slug, page=page_num, **request.args) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if products.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('frontend.category', slug=category.slug, page=products.next_num, **request.args) }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Empty State -->
+{% if not products.items %}
+    <div class="empty-state py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <i class="fas fa-box-open fa-5x text-muted mb-4"></i>
+                    <h3>No Products Found</h3>
+                    <p class="text-muted">We couldn't find any products in this category.</p>
+                    <a href="{{ url_for('frontend.index') }}" class="btn btn-primary">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add to cart functionality
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const originalText = this.innerHTML;
+            
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+            this.disabled = true;
+            
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerHTML = '<i class="fas fa-check me-2"></i>Added!';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-success');
+                    
+                    // Update cart count
+                    updateCartCount();
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-primary');
+                        this.disabled = false;
+                    }, 2000);
+                } else {
+                    alert('Error adding product to cart');
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding product to cart');
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // View toggle functionality
+    document.getElementById('gridView').addEventListener('click', function() {
+        document.getElementById('productsContainer').className = 'row';
+        this.classList.add('active');
+        document.getElementById('listView').classList.remove('active');
+    });
+    
+    document.getElementById('listView').addEventListener('click', function() {
+        document.getElementById('productsContainer').className = 'row list-view';
+        this.classList.add('active');
+        document.getElementById('gridView').classList.remove('active');
+    });
+    
+    function updateCartCount() {
+        fetch('/api/cart/count')
+            .then(response => response.json())
+            .then(data => {
+                const cartCount = document.querySelector('#cart-count');
+                if (cartCount) {
+                    cartCount.textContent = data.count;
+                }
+            });
+    }
+});
+</script>
+
+<style>
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.product-actions {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.product-card:hover .product-actions {
+    opacity: 1;
+}
+
+.list-view .product-item {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+.list-view .product-card {
+    display: flex;
+    flex-direction: row;
+}
+
+.list-view .product-card .card-img-top {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+}
+
+.list-view .product-card .card-body {
+    flex: 1;
+}
+
+.breadcrumb-section {
+    background-color: #f8f9fa;
+    padding: 1rem 0;
+}
+
+.category-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.empty-state {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

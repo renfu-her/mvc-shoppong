@@ -1,7 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
-from app import db
+from werkzeug.security import check_password_hash
+from database import db
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -28,3 +28,7 @@ class User(UserMixin, db.Model):
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}" if self.first_name and self.last_name else self.username
+    
+    def check_password(self, password):
+        """Check if provided password matches the hash"""
+        return check_password_hash(self.password_hash, password)

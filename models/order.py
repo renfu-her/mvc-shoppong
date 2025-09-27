@@ -1,6 +1,6 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from app import db
+from decimal import Decimal
+from database import db
 
 class Order(db.Model):
     __tablename__ = 'orders'
@@ -39,11 +39,11 @@ class Order(db.Model):
     shipping_country = db.Column(db.String(50), nullable=True)
     
     # Order totals
-    subtotal = db.Column(db.Decimal(10, 2), nullable=False)
-    shipping_fee = db.Column(db.Decimal(10, 2), default=0)
-    tax_amount = db.Column(db.Decimal(10, 2), default=0)
-    discount_amount = db.Column(db.Decimal(10, 2), default=0)
-    total_amount = db.Column(db.Decimal(10, 2), nullable=False)
+    subtotal = db.Column(db.Numeric(10, 2), nullable=False)
+    shipping_fee = db.Column(db.Numeric(10, 2), default=0)
+    tax_amount = db.Column(db.Numeric(10, 2), default=0)
+    discount_amount = db.Column(db.Numeric(10, 2), default=0)
+    total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     
     # Payment information
     payment_method = db.Column(db.String(50), nullable=True)  # credit_card, paypal, bank_transfer, etc.
@@ -133,9 +133,9 @@ class OrderItem(db.Model):
     product_image = db.Column(db.String(255), nullable=True)
     
     # Pricing snapshot
-    unit_price = db.Column(db.Decimal(10, 2), nullable=False)
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    total_price = db.Column(db.Decimal(10, 2), nullable=False)
+    total_price = db.Column(db.Numeric(10, 2), nullable=False)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

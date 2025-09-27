@@ -1,6 +1,6 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from app import db
+from decimal import Decimal
+from database import db
 
 class ShippingFee(db.Model):
     __tablename__ = 'shipping_fees'
@@ -11,19 +11,19 @@ class ShippingFee(db.Model):
     
     # Shipping method details
     method_type = db.Column(db.String(50), nullable=False)  # flat_rate, free_shipping, weight_based, price_based
-    cost = db.Column(db.Decimal(10, 2), default=0)
+    cost = db.Column(db.Numeric(10, 2), default=0)
     
     # Conditions for free shipping
-    free_shipping_threshold = db.Column(db.Decimal(10, 2), nullable=True)  # Minimum order amount for free shipping
+    free_shipping_threshold = db.Column(db.Numeric(10, 2), nullable=True)  # Minimum order amount for free shipping
     
     # Weight-based shipping
-    min_weight = db.Column(db.Decimal(8, 2), nullable=True)
-    max_weight = db.Column(db.Decimal(8, 2), nullable=True)
-    weight_cost = db.Column(db.Decimal(10, 2), nullable=True)  # Cost per unit weight
+    min_weight = db.Column(db.Numeric(8, 2), nullable=True)
+    max_weight = db.Column(db.Numeric(8, 2), nullable=True)
+    weight_cost = db.Column(db.Numeric(10, 2), nullable=True)  # Cost per unit weight
     
     # Price-based shipping
-    min_order_amount = db.Column(db.Decimal(10, 2), nullable=True)
-    max_order_amount = db.Column(db.Decimal(10, 2), nullable=True)
+    min_order_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    max_order_amount = db.Column(db.Numeric(10, 2), nullable=True)
     
     # Geographic restrictions
     applicable_countries = db.Column(db.Text, nullable=True)  # JSON array of country codes

@@ -1,12 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from app import db
+from decimal import Decimal
+from database import db
 
 class Cart(db.Model):
     __tablename__ = 'carts'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     session_id = db.Column(db.String(255), nullable=True)  # For guest users
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
