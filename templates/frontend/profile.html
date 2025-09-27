@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header py-4 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="mb-0">My Account</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item active">My Account</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Profile Content -->
+<section class="profile-section py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <!-- Account Overview -->
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Account Overview</h5>
+                        <span class="badge bg-primary">Member since {{ user.created_at.strftime('%Y') }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6 class="text-muted">Full Name</h6>
+                            <p class="mb-0">{{ user.get_full_name() or user.username }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted">Email</h6>
+                            <p class="mb-0">{{ user.email }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted">Phone</h6>
+                            <p class="mb-0">{{ user.phone or 'Not provided' }}</p>
+                        </div>
+                        <div>
+                            <h6 class="text-muted">Default Address</h6>
+                            <p class="mb-0">{{ user.address or 'Not provided' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Update Profile</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('frontend.profile') }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name"
+                                           value="{{ user.first_name or '' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name"
+                                           value="{{ user.last_name or '' }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                    <div class="form-text">Contact support to update email.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone" class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="phone" name="phone"
+                                           value="{{ user.phone or '' }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea class="form-control" id="address" name="address" rows="3">{{ user.address or '' }}</textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card" id="orders">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Order History</h5>
+                            <small class="text-muted">Track your recent purchases and status updates</small>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap justify-content-end">
+                            <span class="badge bg-secondary">Total: {{ order_stats.total }}</span>
+                            <span class="badge bg-warning text-dark">Pending: {{ order_stats.pending }}</span>
+                            <span class="badge bg-info text-dark">Processing: {{ order_stats.processing }}</span>
+                            <span class="badge bg-success">Completed: {{ order_stats.completed }}</span>
+                            <span class="badge bg-danger">Cancelled: {{ order_stats.cancelled }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if orders %}
+                            <div class="table-responsive">
+                                <table class="table mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th scope="col">Order #</th>
+                                            <th scope="col">Date</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Payment</th>
+                                            <th scope="col" class="text-end">Total</th>
+                                            <th scope="col" class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in orders %}
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">{{ order.order_number }}</div>
+                                                    <small class="text-muted">Items: {{ order.items|length }}</small>
+                                                </td>
+                                                <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">
+                                                        {{ order.get_status_display() }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">
+                                                        {{ order.get_payment_status_display() }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end fw-semibold">${{ '%.2f'|format(order.total_amount) }}</td>
+                                                <td class="text-end">
+                                                    <a href="{{ url_for('frontend.order_result', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        View Details
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="p-4 text-center text-muted">
+                                <i class="fas fa-box-open fa-2x mb-3"></i>
+                                <p class="mb-0">You have not placed any orders yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

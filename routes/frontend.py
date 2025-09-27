@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
+from decimal import Decimal
 from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User
 from models.order import Order, OrderItem
 from utils.helpers import paginate_query, generate_order_number
@@ -213,10 +214,11 @@ def checkout():
 def process_checkout():
     """Process checkout and redirect to ECPay"""
     cart = get_or_create_cart()
-    if not cart or not cart.items:
+    cart_items = list(cart.items) if cart else []
+    if not cart or not cart_items:
         flash('Your cart is empty', 'warning')
         return redirect(url_for('frontend.cart'))
-    
+
     # Get form data
     first_name = request.form.get('first_name')
     last_name = request.form.get('last_name')
@@ -225,24 +227,34 @@ def process_checkout():
     address = request.form.get('address')
     shipping_method_id = request.form.get('shipping_method')
     notes = request.form.get('notes', '')
-    
+
     # Validation
     if not all([first_name, last_name, email, phone, address, shipping_method_id]):
         flash('Please fill in all required fields', 'error')
         return redirect(url_for('frontend.checkout'))
-    
+
     # Get shipping method
+    try:
+        shipping_method_id = int(shipping_method_id)
+    except (TypeError, ValueError):
+        flash('Invalid shipping method', 'error')
+        return redirect(url_for('frontend.checkout'))
+
     shipping_method = ShippingFee.query.get(shipping_method_id)
     if not shipping_method:
         flash('Invalid shipping method', 'error')
         return redirect(url_for('frontend.checkout'))
-    
+
     # Calculate shipping cost
     shipping_cost = shipping_method.calculate_shipping_cost(order_amount=float(cart.subtotal))
     if shipping_cost is None:
         flash('Invalid shipping method for this order', 'error')
         return redirect(url_for('frontend.checkout'))
-    
+
+    order_subtotal = Decimal(str(cart.subtotal))
+    shipping_cost_decimal = Decimal(str(shipping_cost))
+    order_total = order_subtotal + shipping_cost_decimal
+
     # Create order
     order = Order(
         user_id=current_user.id,
@@ -264,34 +276,48 @@ def process_checkout():
         shipping_state='Taiwan',
         shipping_postcode='100',
         shipping_country='TW',
-        subtotal=float(cart.subtotal),
-        shipping_fee=float(shipping_cost),
-        total_amount=float(cart.subtotal) + float(shipping_cost),
+        shipping_method=shipping_method.name,
+        payment_method='ecpay',
+        subtotal=order_subtotal,
+        shipping_fee=shipping_cost_decimal,
+        total_amount=order_total,
         customer_notes=notes,
         payment_status='pending'
     )
     db.session.add(order)
     db.session.flush()  # Get order ID
-    
+
     # Create order items
-    for item in cart.items:
+    for item in cart_items:
+        product = item.product
+        if not product:
+            continue
+
+        unit_price = Decimal(str(product.sale_price or product.regular_price))
+        total_price = unit_price * item.quantity
+        primary_image = product.get_primary_image()
+
         order_item = OrderItem(
             order_id=order.id,
-            product_id=item.product_id,
+            product_id=product.id,
+            product_name=product.name,
+            product_sku=product.sku,
+            product_image=primary_image.image_path if primary_image else None,
+            unit_price=unit_price,
             quantity=item.quantity,
-            price=float(item.product.sale_price or item.product.regular_price)
+            total_price=total_price
         )
         db.session.add(order_item)
-    
+
     db.session.commit()
-    
+
     # Initialize ECPay service
     ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
-    
+
     # Prepare order data for ECPay
-    item_names = [f"{item.product.name} x {item.quantity}" for item in cart.items]
+    item_names = [f"{item.product.name} x {item.quantity}" for item in cart_items if item.product]
     item_name_str = '#'.join(item_names)
-    
+
     order_data = {
         'merchant_trade_no': ecpay_service.generate_merchant_trade_no(order.id),
         'merchant_trade_date': ecpay_service.format_trade_date(),
@@ -306,14 +332,17 @@ def process_checkout():
         'custom_field3': email,
         'custom_field4': phone
     }
-    
+
     # Create ECPay order
     ecpay_params = ecpay_service.create_order(order_data)
-    
+
     # Store ECPay parameters in session for form submission
     session['ecpay_params'] = ecpay_params
     session['order_id'] = order.id
-    
+
+    # Clear cart after creating order
+    cart.clear()
+
     return render_template('frontend/ecpay_redirect.html', 
                          ecpay_params=ecpay_params,
                          ecpay_url=ecpay_service.api_url)
@@ -357,12 +386,48 @@ def ecpay_return():
 def order_result(order_id):
     """Order result page after payment"""
     order = Order.query.get_or_404(order_id)
-    
+
     if order.user_id != current_user.id:
         flash('Access denied', 'error')
         return redirect(url_for('frontend.index'))
-    
+
     return render_template('frontend/order_result.html', order=order)
+
+@frontend_bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    """User profile page with order history"""
+    user = current_user
+
+    if request.method == 'POST':
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        address = request.form.get('address', '').strip()
+
+        user.first_name = first_name or None
+        user.last_name = last_name or None
+        user.phone = phone or None
+        user.address = address or None
+
+        db.session.commit()
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('frontend.profile'))
+
+    orders = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc()).all()
+
+    order_stats = {
+        'total': len(orders),
+        'pending': sum(1 for order in orders if order.status == 'pending'),
+        'processing': sum(1 for order in orders if order.status == 'processing'),
+        'completed': sum(1 for order in orders if order.status in {'shipped', 'delivered'}),
+        'cancelled': sum(1 for order in orders if order.status in {'cancelled', 'refunded'})
+    }
+
+    return render_template('frontend/profile.html',
+                           user=user,
+                           orders=orders,
+                           order_stats=order_stats)
 
 @frontend_bp.route('/ecpay/test-info')
 def ecpay_test_info():
