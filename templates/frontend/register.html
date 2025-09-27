@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login - MVC Shopping{% endblock %}
+{% block title %}Register - MVC Shopping{% endblock %}
 
 {% block content %}
 <!-- Breadcrumb -->
@@ -11,7 +11,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Login</li>
+                        <li class="breadcrumb-item active" aria-current="page">Register</li>
                     </ol>
                 </nav>
             </div>
@@ -19,16 +19,16 @@
     </div>
 </div>
 
-<!-- Login Section -->
-<div class="login-section py-5">
+<!-- Register Section -->
+<div class="register-section py-5">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
+            <div class="col-md-8 col-lg-6">
                 <div class="card shadow">
                     <div class="card-body p-5">
                         <div class="text-center mb-4">
-                            <h2 class="fw-bold text-primary">Welcome Back</h2>
-                            <p class="text-muted">Sign in to your account to continue</p>
+                            <h2 class="fw-bold text-primary">Create Account</h2>
+                            <p class="text-muted">Join us to start shopping</p>
                         </div>
                         
                         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,7 +42,28 @@
                             {% endif %}
                         {% endwith %}
                         
-                        <form method="POST" action="{{ url_for('frontend.login') }}">
+                        <form method="POST" action="{{ url_for('frontend.register') }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                            </div>
+                            
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email Address</label>
                                 <div class="input-group">
@@ -53,7 +74,7 @@
                                 </div>
                             </div>
                             
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
@@ -64,22 +85,23 @@
                             </div>
                             
                             <div class="mb-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
-                                    <label class="form-check-label" for="remember">
-                                        Remember me
-                                    </label>
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
                                 </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary w-100 mb-3">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                <i class="fas fa-user-plus me-2"></i>Create Account
                             </button>
                         </form>
                         
                         <div class="text-center">
-                            <p class="mb-0">Don't have an account? 
-                                <a href="{{ url_for('frontend.register') }}" class="text-primary text-decoration-none">Sign up here</a>
+                            <p class="mb-0">Already have an account? 
+                                <a href="{{ url_for('frontend.login') }}" class="text-primary text-decoration-none">Sign in here</a>
                             </p>
                         </div>
                     </div>
@@ -97,7 +119,7 @@
     padding: 1rem 0;
 }
 
-.login-section {
+.register-section {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     min-height: 60vh;
 }

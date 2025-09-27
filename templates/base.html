@@ -94,15 +94,16 @@
                                             <i class="fas fa-user me-1"></i>{{ current_user.first_name or current_user.username }}
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
-                                            <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2"></i>Orders</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item" href="{{ url_for('frontend.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2"></i>Orders</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('frontend.ecpay_test_info') }}"><i class="fas fa-credit-card me-2"></i>Payment Test Info</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('frontend.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                                         </ul>
                                     </div>
                                 {% else %}
                                     <a href="{{ url_for('frontend.login') }}" class="btn btn-outline-primary me-2">Login</a>
-                                    <a href="#" class="btn btn-primary">Contact Admin</a>
+                                    <a href="{{ url_for('frontend.register') }}" class="btn btn-primary">Register</a>
                                 {% endif %}
                             </div>
                         </div>

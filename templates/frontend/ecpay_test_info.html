@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}ECPay Test Information - MVC Shopping{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>ECPay Test Environment Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Test Environment</h5>
+                        <p class="mb-0">This application is configured to use ECPay test environment for payment processing.</p>
+                    </div>
+                    
+                    <h5 class="mt-4">Test Credit Cards</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Card Type</th>
+                                    <th>Card Number</th>
+                                    <th>Security Code</th>
+                                    <th>Expiry Date</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-primary">Domestic</span></td>
+                                    <td><code>4311-9511-1111-1111</code></td>
+                                    <td>任意三碼</td>
+                                    <td>12/2025</td>
+                                    <td>國內信用卡測試卡號</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary">Domestic</span></td>
+                                    <td><code>4311-9522-2222-2222</code></td>
+                                    <td>任意三碼</td>
+                                    <td>12/2025</td>
+                                    <td>國內信用卡測試卡號2</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning">Overseas</span></td>
+                                    <td><code>4000-2011-1111-1111</code></td>
+                                    <td>任意三碼</td>
+                                    <td>12/2025</td>
+                                    <td>海外信用卡測試卡號</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">American Express</span></td>
+                                    <td><code>3403-532780-80900</code></td>
+                                    <td>任意四碼</td>
+                                    <td>12/2025</td>
+                                    <td>美國運通國內測試卡號</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">American Express</span></td>
+                                    <td><code>3712-222222-22222</code></td>
+                                    <td>任意四碼</td>
+                                    <td>12/2025</td>
+                                    <td>美國運通海外測試卡號</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-info">Installment</span></td>
+                                    <td><code>4938-1777-7777-7777</code></td>
+                                    <td>任意三碼</td>
+                                    <td>12/2025</td>
+                                    <td>圓夢彈性分期測試卡號</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h5 class="mt-4">3D Verification</h5>
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-shield-alt me-2"></i>3D Secure Verification</h6>
+                        <p class="mb-0">
+                            <strong>Test Environment SMS Code:</strong> <code>1234</code><br>
+                            In test environment, the 3D verification SMS code is fixed as "1234".
+                        </p>
+                    </div>
+                    
+                    <h5 class="mt-4">Test Environment Details</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Merchant Information</h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Merchant ID:</strong> 3002607</li>
+                                        <li><strong>Environment:</strong> Test</li>
+                                        <li><strong>API URL:</strong> payment-stage.ecpay.com.tw</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">Important Notes</h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li>• Expiry date must be future date</li>
+                                        <li>• All transactions are simulated</li>
+                                        <li>• No real money is charged</li>
+                                        <li>• Test orders can be viewed in ECPay test backend</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('frontend.index') }}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Home
+                        </a>
+                        <a href="{{ url_for('frontend.shop') }}" class="btn btn-outline-primary ms-2">
+                            <i class="fas fa-shopping-bag me-2"></i>Start Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+code {
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: transform 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

@@ -49,6 +49,7 @@ class Order(db.Model):
     payment_method = db.Column(db.String(50), nullable=True)  # credit_card, paypal, bank_transfer, etc.
     payment_status = db.Column(db.String(20), default='pending')  # pending, paid, failed, refunded
     transaction_id = db.Column(db.String(100), nullable=True)
+    ecpay_trade_no = db.Column(db.String(50))  # ECPay transaction number
     
     # Shipping information
     shipping_method = db.Column(db.String(50), nullable=True)

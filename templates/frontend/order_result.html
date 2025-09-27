@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Order Result - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Order Result</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Result Section -->
+<div class="order-result-section py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body p-5">
+                        {% if order.payment_status == 'paid' %}
+                            <div class="text-center mb-4">
+                                <div class="success-icon mb-3">
+                                    <i class="fas fa-check-circle fa-5x text-success"></i>
+                                </div>
+                                <h2 class="text-success mb-3">Payment Successful!</h2>
+                                <p class="text-muted">Thank you for your order. Your payment has been processed successfully.</p>
+                            </div>
+                        {% else %}
+                            <div class="text-center mb-4">
+                                <div class="pending-icon mb-3">
+                                    <i class="fas fa-clock fa-5x text-warning"></i>
+                                </div>
+                                <h2 class="text-warning mb-3">Payment Pending</h2>
+                                <p class="text-muted">Your order has been created but payment is still pending.</p>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Order Details -->
+                        <div class="order-details">
+                            <h4 class="mb-3">Order Details</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Order Number:</strong></td>
+                                            <td>{{ order.order_number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Order Date:</strong></td>
+                                            <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Status:</strong></td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }}">
+                                                    {{ order.payment_status.title() }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% if order.ecpay_trade_no %}
+                                        <tr>
+                                            <td><strong>Transaction ID:</strong></td>
+                                            <td>{{ order.ecpay_trade_no }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Total Amount:</strong></td>
+                                            <td class="fw-bold text-primary">${{ "%.2f"|format(order.total_amount) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Shipping Fee:</strong></td>
+                                            <td>${{ "%.2f"|format(order.shipping_fee) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Shipping Address:</strong></td>
+                                            <td>{{ order.shipping_address_1 }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Phone:</strong></td>
+                                            <td>{{ order.customer_phone }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Items -->
+                        <div class="order-items mt-4">
+                            <h4 class="mb-3">Order Items</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.items %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if item.product.images %}
+                                                        <img src="{{ item.product.images[0].image_url }}" 
+                                                             alt="{{ item.product.name }}" 
+                                                             class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                        <small class="text-muted">SKU: {{ item.product.sku }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ item.quantity }}</td>
+                                            <td>${{ "%.2f"|format(item.price) }}</td>
+                                            <td class="fw-bold">${{ "%.2f"|format(item.price * item.quantity) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Notes -->
+                        {% if order.customer_notes %}
+                        <div class="order-notes mt-4">
+                            <h5>Order Notes</h5>
+                            <p class="text-muted">{{ order.customer_notes }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Actions -->
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('frontend.index') }}" class="btn btn-primary me-2">
+                                <i class="fas fa-home me-2"></i>Continue Shopping
+                            </a>
+                            <a href="#" class="btn btn-outline-secondary">
+                                <i class="fas fa-print me-2"></i>Print Receipt
+                            </a>
+                        </div>
+                        
+                        <!-- Test Information -->
+                        {% if order.payment_status == 'paid' %}
+                        <div class="alert alert-info mt-4">
+                            <h6><i class="fas fa-info-circle me-2"></i>Test Environment Information</h6>
+                            <p class="mb-2">This is a test transaction using ECPay test environment.</p>
+                            <p class="mb-0">
+                                <strong>Test Credit Cards:</strong><br>
+                                • 4311-9511-1111-1111 (Domestic)<br>
+                                • 4311-9522-2222-2222 (Domestic)<br>
+                                • 4000-2011-1111-1111 (Overseas)<br>
+                                <strong>3D Verification SMS Code:</strong> 1234
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.breadcrumb-section {
+    background-color: #f8f9fa;
+    padding: 1rem 0;
+}
+
+.order-result-section {
+    background-color: #f8f9fa;
+    min-height: 60vh;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.success-icon, .pending-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: transform 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #bbdefb;
+    color: #1565c0;
+}
+</style>
+{% endblock %}

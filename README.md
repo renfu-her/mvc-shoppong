@@ -2,15 +2,36 @@
 
 A modern e-commerce platform built with Python Flask, featuring a complete MVC architecture, MySQL database, and responsive frontend design.
 
+## 🚀 Recent Updates & Fixes
+
+### ✅ Completed Features
+- **User Authentication System**: Complete login/logout/register functionality for customers
+- **Checkout Protection**: Login required for checkout process with proper redirects
+- **Backend Route Change**: Admin panel moved from `/admin` to `/backend`
+- **Cart Functionality**: Fixed add-to-cart with proper error handling
+- **Database Schema**: Fixed cart table to support guest users (nullable user_id)
+- **Template System**: Created missing templates (category.html, login.html, register.html)
+- **Static Assets**: Added placeholder images and proper file structure
+- **API Endpoints**: Working cart API with session management
+
+### 🔧 Technical Fixes
+- **Pillow Compatibility**: Updated to version >=9.0.0 for Windows compatibility
+- **Circular Imports**: Resolved by creating separate database.py module
+- **Decimal Type Issues**: Fixed SQLAlchemy Numeric type for price fields
+- **Flask-Login Setup**: Added proper user_loader and authentication flow
+- **Migration System**: Database migrations working with Alembic
+- **Error Handling**: Comprehensive error handling in frontend JavaScript
+
 ## Features
 
 ### Frontend
 - **Modern Design**: Based on Shopwise template with responsive layout
 - **Product Catalog**: Browse products with filtering and search
-- **Shopping Cart**: Add/remove items, quantity management
-- **Checkout Process**: Complete order flow with address management
+- **Shopping Cart**: Add/remove items, quantity management with AJAX
+- **Checkout Process**: Login-protected order flow
 - **Product Details**: Detailed product pages with image galleries
 - **Category Navigation**: Hierarchical category structure (3 levels max)
+- **User Authentication**: Login/logout/register with session management
 
 ### Backend (Admin Panel)
 - **Dashboard**: Overview of orders, products, and statistics
@@ -27,7 +48,8 @@ A modern e-commerce platform built with Python Flask, featuring a complete MVC a
 - **Image Processing**: Automatic WebP conversion and resizing
 - **RESTful API**: JSON API for frontend-backend communication
 - **Responsive Design**: Mobile-friendly interface
-- **Security**: Admin authentication and data validation
+- **Security**: Admin and user authentication with data validation
+- **Session Management**: Guest cart support with session-based storage
 
 ## Technology Stack
 
@@ -79,8 +101,11 @@ A modern e-commerce platform built with Python Flask, featuring a complete MVC a
 
 6. **Access the application**
    - Frontend: http://localhost:5000
-   - Admin Panel: http://localhost:5000/admin
+   - User Login: http://localhost:5000/login
+   - User Register: http://localhost:5000/register
+   - Backend (Admin): http://localhost:5000/backend/login
    - Default admin credentials: admin / admin123
+   - Test Cart: http://localhost:5000/static/test_cart.html
 
 ## Database Schema
 
@@ -110,9 +135,11 @@ A modern e-commerce platform built with Python Flask, featuring a complete MVC a
 - `GET /api/products` - Get products with filtering
 - `GET /api/products/<id>` - Get single product details
 - `GET /api/categories` - Get category hierarchy
-- `POST /api/cart/add` - Add item to cart
+- `POST /api/cart/add` - Add item to cart (with session support)
 - `POST /api/cart/update` - Update cart item quantity
 - `POST /api/cart/remove` - Remove item from cart
+- `GET /api/cart/count` - Get cart item count
+- `POST /api/validate-coupon` - Validate coupon codes
 - `POST /api/orders` - Create new order
 - `GET /api/orders/<id>` - Get order details
 
@@ -184,17 +211,22 @@ mvc-shopping/
 ### Frontend Usage
 1. Browse products by category or search
 2. View product details and images
-3. Add products to shopping cart
-4. Proceed to checkout
+3. Add products to shopping cart (works for guests and logged-in users)
+4. Login required for checkout process
 5. Complete order with shipping and payment information
 
-### Admin Usage
-1. Login with admin credentials
+### Backend (Admin) Usage
+1. Login with admin credentials at `/backend/login`
 2. Manage products, categories, and orders
 3. Upload product images (automatically converted to WebP)
 4. Create and manage coupons
 5. Configure shipping methods
 6. Monitor sales and inventory
+
+### User Authentication
+- **Guest Users**: Can browse and add to cart (session-based)
+- **Logged-in Users**: Full access to checkout and order history
+- **Admin Users**: Access to backend management panel
 
 ## Development
 
@@ -218,6 +250,14 @@ flask db upgrade
 - Test order processing workflow
 - Test image upload and processing
 - Test coupon and shipping functionality
+- Test cart functionality: http://localhost:5000/static/test_cart.html
+- Test user authentication and checkout protection
+
+### Known Issues & Solutions
+- **Pillow Installation**: Use `Pillow>=9.0.0` for Windows compatibility
+- **Database Migrations**: Run `flask db upgrade` after schema changes
+- **Session Management**: Cart works for both guests and logged-in users
+- **Image Processing**: All uploads automatically converted to WebP format
 
 ## Contributing
 
@@ -236,6 +276,18 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For support and questions, please contact the development team or create an issue in the repository.
 
 ## Changelog
+
+### Version 1.1.0 (Current)
+- ✅ **User Authentication System**: Complete login/logout functionality
+- ✅ **Checkout Protection**: Login required for checkout with proper redirects
+- ✅ **Backend Route Change**: Admin panel moved from `/admin` to `/backend`
+- ✅ **Cart Functionality**: Fixed add-to-cart with session support
+- ✅ **Database Schema**: Fixed cart table for guest users
+- ✅ **Template System**: Added missing templates and error handling
+- ✅ **Static Assets**: Added placeholder images and proper structure
+- ✅ **API Endpoints**: Working cart API with comprehensive error handling
+- ✅ **Migration System**: Database migrations working with Alembic
+- ✅ **Technical Fixes**: Resolved Pillow, circular imports, and Decimal issues
 
 ### Version 1.0.0
 - Initial release

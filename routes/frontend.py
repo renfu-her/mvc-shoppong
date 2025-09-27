@@ -3,6 +3,7 @@ from flask_login import login_required, login_user, logout_user, current_user
 from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User
 from models.order import Order, OrderItem
 from utils.helpers import paginate_query, generate_order_number
+from utils.ecpay import ECPayService, ECPAY_TEST_CONFIG
 from app import db
 import json
 
@@ -30,6 +31,49 @@ def login():
             flash('Invalid email or password', 'error')
     
     return render_template('frontend/login.html')
+
+@frontend_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration page"""
+    if current_user.is_authenticated:
+        return redirect(url_for('frontend.index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        
+        # Validation
+        if not all([username, email, password, confirm_password]):
+            flash('All fields are required', 'error')
+        elif password != confirm_password:
+            flash('Passwords do not match', 'error')
+        elif User.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+        elif User.query.filter_by(email=email).first():
+            flash('Email already exists', 'error')
+        else:
+            # Create new user
+            from werkzeug.security import generate_password_hash
+            user = User(
+                username=username,
+                email=email,
+                password_hash=generate_password_hash(password),
+                first_name=first_name,
+                last_name=last_name,
+                is_active=True,
+                is_admin=False
+            )
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Registration successful! Please log in.', 'success')
+            return redirect(url_for('frontend.login'))
+    
+    return render_template('frontend/register.html')
 
 @frontend_bp.route('/logout')
 @login_required
@@ -163,6 +207,167 @@ def checkout():
     return render_template('frontend/checkout.html',
                          cart=cart,
                          shipping_methods=shipping_methods)
+
+@frontend_bp.route('/checkout/process', methods=['POST'])
+@login_required
+def process_checkout():
+    """Process checkout and redirect to ECPay"""
+    cart = get_or_create_cart()
+    if not cart or not cart.items:
+        flash('Your cart is empty', 'warning')
+        return redirect(url_for('frontend.cart'))
+    
+    # Get form data
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    address = request.form.get('address')
+    shipping_method_id = request.form.get('shipping_method')
+    notes = request.form.get('notes', '')
+    
+    # Validation
+    if not all([first_name, last_name, email, phone, address, shipping_method_id]):
+        flash('Please fill in all required fields', 'error')
+        return redirect(url_for('frontend.checkout'))
+    
+    # Get shipping method
+    shipping_method = ShippingFee.query.get(shipping_method_id)
+    if not shipping_method:
+        flash('Invalid shipping method', 'error')
+        return redirect(url_for('frontend.checkout'))
+    
+    # Calculate shipping cost
+    shipping_cost = shipping_method.calculate_shipping_cost(order_amount=float(cart.subtotal))
+    if shipping_cost is None:
+        flash('Invalid shipping method for this order', 'error')
+        return redirect(url_for('frontend.checkout'))
+    
+    # Create order
+    order = Order(
+        user_id=current_user.id,
+        order_number=generate_order_number(),
+        status='pending',
+        customer_email=email,
+        customer_phone=phone,
+        billing_first_name=first_name,
+        billing_last_name=last_name,
+        billing_address_1=address,
+        billing_city='Taipei',
+        billing_state='Taiwan',
+        billing_postcode='100',
+        billing_country='TW',
+        shipping_first_name=first_name,
+        shipping_last_name=last_name,
+        shipping_address_1=address,
+        shipping_city='Taipei',
+        shipping_state='Taiwan',
+        shipping_postcode='100',
+        shipping_country='TW',
+        subtotal=float(cart.subtotal),
+        shipping_fee=float(shipping_cost),
+        total_amount=float(cart.subtotal) + float(shipping_cost),
+        customer_notes=notes,
+        payment_status='pending'
+    )
+    db.session.add(order)
+    db.session.flush()  # Get order ID
+    
+    # Create order items
+    for item in cart.items:
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            price=float(item.product.sale_price or item.product.regular_price)
+        )
+        db.session.add(order_item)
+    
+    db.session.commit()
+    
+    # Initialize ECPay service
+    ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
+    
+    # Prepare order data for ECPay
+    item_names = [f"{item.product.name} x {item.quantity}" for item in cart.items]
+    item_name_str = '#'.join(item_names)
+    
+    order_data = {
+        'merchant_trade_no': ecpay_service.generate_merchant_trade_no(order.id),
+        'merchant_trade_date': ecpay_service.format_trade_date(),
+        'total_amount': int(order.total_amount),
+        'trade_desc': f"Order #{order.order_number}",
+        'item_name': item_name_str,
+        'return_url': url_for('frontend.ecpay_return', _external=True),
+        'order_result_url': url_for('frontend.order_result', order_id=order.id, _external=True),
+        'client_back_url': url_for('frontend.index', _external=True),
+        'custom_field1': str(order.id),
+        'custom_field2': f"{first_name} {last_name}",
+        'custom_field3': email,
+        'custom_field4': phone
+    }
+    
+    # Create ECPay order
+    ecpay_params = ecpay_service.create_order(order_data)
+    
+    # Store ECPay parameters in session for form submission
+    session['ecpay_params'] = ecpay_params
+    session['order_id'] = order.id
+    
+    return render_template('frontend/ecpay_redirect.html', 
+                         ecpay_params=ecpay_params,
+                         ecpay_url=ecpay_service.api_url)
+
+@frontend_bp.route('/ecpay/return', methods=['POST'])
+def ecpay_return():
+    """ECPay payment result notification (server-to-server)"""
+    from utils.ecpay import ECPayService, ECPAY_TEST_CONFIG
+    
+    ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
+    
+    # Verify check mac value
+    if not ecpay_service.verify_check_mac_value(request.form.to_dict()):
+        return '0|CheckMacValue verification failed'
+    
+    # Get order data
+    merchant_trade_no = request.form.get('MerchantTradeNo')
+    rtn_code = request.form.get('RtnCode')
+    rtn_msg = request.form.get('RtnMsg')
+    trade_no = request.form.get('TradeNo')
+    trade_amt = request.form.get('TradeAmt')
+    payment_date = request.form.get('PaymentDate')
+    payment_type = request.form.get('PaymentType')
+    custom_field1 = request.form.get('CustomField1')
+    
+    if rtn_code == '1':  # Payment successful
+        # Update order status
+        order = Order.query.get(int(custom_field1))
+        if order:
+            order.payment_status = 'paid'
+            order.payment_date = payment_date
+            order.ecpay_trade_no = trade_no
+            order.status = 'processing'
+            db.session.commit()
+    
+    # Return success response to ECPay
+    return '1|OK'
+
+@frontend_bp.route('/order/result/<int:order_id>')
+@login_required
+def order_result(order_id):
+    """Order result page after payment"""
+    order = Order.query.get_or_404(order_id)
+    
+    if order.user_id != current_user.id:
+        flash('Access denied', 'error')
+        return redirect(url_for('frontend.index'))
+    
+    return render_template('frontend/order_result.html', order=order)
+
+@frontend_bp.route('/ecpay/test-info')
+def ecpay_test_info():
+    """ECPay test information page"""
+    return render_template('frontend/ecpay_test_info.html')
 
 @frontend_bp.route('/category/<slug>')
 def category(slug):
