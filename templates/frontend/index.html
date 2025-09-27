@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Home - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1>Get up to 50% off Today Only!</h1>
+                    <h2>Dual Camera 20MP</h2>
+                    <div class="price">
+                        <span class="current-price">$45.00</span>
+                        <span class="old-price">$55.25</span>
+                    </div>
+                    <a href="{{ url_for('frontend.shop') }}" class="btn btn-primary btn-lg">Shop Now</a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    <img src="{{ url_for('static', filename='images/hero-product.png') }}" alt="Hero Product" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="categories-section py-5">
+    <div class="container">
+        <div class="row">
+            {% for category_data in categories[:6] %}
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+                <div class="category-card text-center">
+                    <div class="category-image">
+                        {% if category_data.category.image %}
+                        <img src="{{ url_for('static', filename=category_data.category.image) }}" alt="{{ category_data.category.name }}" class="img-fluid">
+                        {% else %}
+                        <div class="category-placeholder">
+                            <i class="fas fa-box fa-3x"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h6 class="category-name">{{ category_data.category.name }}</h6>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="featured-products py-5 bg-light">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2>Exclusive Products</h2>
+            <div class="product-tabs">
+                <ul class="nav nav-tabs justify-content-center" id="productTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="new-arrival-tab" data-bs-toggle="tab" data-bs-target="#new-arrival" type="button" role="tab">
+                            New Arrival
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="best-sellers-tab" data-bs-toggle="tab" data-bs-target="#best-sellers" type="button" role="tab">
+                            Best Sellers
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="featured-tab" data-bs-toggle="tab" data-bs-target="#featured" type="button" role="tab">
+                            Featured
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="special-offer-tab" data-bs-toggle="tab" data-bs-target="#special-offer" type="button" role="tab">
+                            Special Offer
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="productTabsContent">
+            <!-- New Arrival -->
+            <div class="tab-pane fade show active" id="new-arrival" role="tabpanel">
+                <div class="row">
+                    {% for product in new_arrivals %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% set primary_image = product.get_primary_image() %}
+                                {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <div class="product-actions">
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ product.id }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if product.is_on_sale %}
+                                <div class="product-badge sale-badge">{{ product.discount_percentage }}% Off</div>
+                                {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h6 class="product-name">
+                                    <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                                </h6>
+                                <div class="product-price">
+                                    <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                    {% if product.sale_price %}
+                                    <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="product-rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <span class="rating-count">(21)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Best Sellers -->
+            <div class="tab-pane fade" id="best-sellers" role="tabpanel">
+                <div class="row">
+                    {% for product in best_sellers %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% set primary_image = product.get_primary_image() %}
+                                {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <div class="product-actions">
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ product.id }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if product.is_on_sale %}
+                                <div class="product-badge sale-badge">{{ product.discount_percentage }}% Off</div>
+                                {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h6 class="product-name">
+                                    <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                                </h6>
+                                <div class="product-price">
+                                    <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                    {% if product.sale_price %}
+                                    <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="product-rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <span class="rating-count">(15)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Featured -->
+            <div class="tab-pane fade" id="featured" role="tabpanel">
+                <div class="row">
+                    {% for product in featured_products %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% set primary_image = product.get_primary_image() %}
+                                {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <div class="product-actions">
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ product.id }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if product.is_on_sale %}
+                                <div class="product-badge sale-badge">{{ product.discount_percentage }}% Off</div>
+                                {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h6 class="product-name">
+                                    <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                                </h6>
+                                <div class="product-price">
+                                    <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                    {% if product.sale_price %}
+                                    <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="product-rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <span class="rating-count">(25)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Special Offer -->
+            <div class="tab-pane fade" id="special-offer" role="tabpanel">
+                <div class="row">
+                    {% for product in on_sale_products %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% set primary_image = product.get_primary_image() %}
+                                {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <div class="product-actions">
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ product.id }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if product.is_on_sale %}
+                                <div class="product-badge sale-badge">{{ product.discount_percentage }}% Off</div>
+                                {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h6 class="product-name">
+                                    <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                                </h6>
+                                <div class="product-price">
+                                    <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                    {% if product.sale_price %}
+                                    <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="product-rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <span class="rating-count">(22)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Deal of the Day Section -->
+<section class="deal-of-the-day py-5">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2>Deal Of The Day</h2>
+        </div>
+        <div class="row">
+            {% for product in on_sale_products[:3] %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="deal-card">
+                    <div class="deal-image">
+                        {% set primary_image = product.get_primary_image() %}
+                        {% if primary_image %}
+                        <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                        {% endif %}
+                        <div class="deal-timer">
+                            <div class="countdown" data-end-time="2024-12-31 23:59:59">
+                                <div class="time-unit">
+                                    <span class="time-value">00</span>
+                                    <span class="time-label">Days</span>
+                                </div>
+                                <div class="time-unit">
+                                    <span class="time-value">00</span>
+                                    <span class="time-label">Hours</span>
+                                </div>
+                                <div class="time-unit">
+                                    <span class="time-value">00</span>
+                                    <span class="time-label">Minutes</span>
+                                </div>
+                                <div class="time-unit">
+                                    <span class="time-value">00</span>
+                                    <span class="time-label">Seconds</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="deal-info">
+                        <h5>{{ product.name }}</h5>
+                        <div class="deal-price">
+                            <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                            <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                        </div>
+                        <div class="deal-progress">
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{ product.discount_percentage }}%"></div>
+                            </div>
+                            <div class="deal-stats">
+                                <span>Already Sold: <strong>6</strong></span>
+                                <span>Available: <strong>8</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter-section py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h3>Join Our Newsletter Now</h3>
+                <p>Register now to get updates on promotions.</p>
+            </div>
+            <div class="col-lg-6">
+                <form class="newsletter-form">
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Enter your email">
+                        <button class="btn btn-light" type="submit">Subscribe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add to cart functionality
+    $('.add-to-cart').click(function() {
+        var productId = $(this).data('product-id');
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/cart/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                product_id: productId,
+                quantity: 1
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#cart-count').text(response.cart_count);
+                    button.html('<i class="fas fa-check"></i>');
+                    button.removeClass('btn-outline-primary').addClass('btn-success');
+                    setTimeout(function() {
+                        button.html('<i class="fas fa-shopping-cart"></i>');
+                        button.removeClass('btn-success').addClass('btn-outline-primary');
+                    }, 2000);
+                }
+            }
+        });
+    });
+    
+    // Countdown timer
+    $('.countdown').each(function() {
+        var endTime = new Date($(this).data('end-time')).getTime();
+        var timer = $(this);
+        
+        function updateCountdown() {
+            var now = new Date().getTime();
+            var distance = endTime - now;
+            
+            if (distance < 0) {
+                timer.html('<div class="time-unit"><span class="time-value">00</span><span class="time-label">Expired</span></div>');
+                return;
+            }
+            
+            var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            timer.html(
+                '<div class="time-unit"><span class="time-value">' + String(days).padStart(2, '0') + '</span><span class="time-label">Days</span></div>' +
+                '<div class="time-unit"><span class="time-value">' + String(hours).padStart(2, '0') + '</span><span class="time-label">Hours</span></div>' +
+                '<div class="time-unit"><span class="time-value">' + String(minutes).padStart(2, '0') + '</span><span class="time-label">Minutes</span></div>' +
+                '<div class="time-unit"><span class="time-value">' + String(seconds).padStart(2, '0') + '</span><span class="time-label">Seconds</span></div>'
+            );
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    });
+});
+</script>
+{% endblock %}

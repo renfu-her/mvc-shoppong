@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header py-4 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1>{{ product.name }}</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.shop') }}">Shop</a></li>
+                        <li class="breadcrumb-item active">{{ product.name }}</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Product Detail -->
+<section class="product-detail py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Product Images -->
+            <div class="col-lg-6">
+                <div class="product-images">
+                    <div class="main-image mb-3">
+                        {% set primary_image = product.get_primary_image() %}
+                        {% if primary_image %}
+                        <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid" id="main-product-image">
+                        {% else %}
+                        <div class="product-placeholder text-center py-5">
+                            <i class="fas fa-image fa-5x text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if product.images|length > 1 %}
+                    <div class="thumbnail-images">
+                        <div class="row">
+                            {% for image in product.get_all_images() %}
+                            <div class="col-3 mb-2">
+                                <img src="{{ url_for('static', filename=image.image_path) }}" alt="{{ product.name }}" class="img-fluid thumbnail-image {% if image.is_primary %}active{% endif %}" data-main-src="{{ url_for('static', filename=image.image_path) }}">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Product Info -->
+            <div class="col-lg-6">
+                <div class="product-info">
+                    <h2 class="product-title">{{ product.name }}</h2>
+                    
+                    <div class="product-rating mb-3">
+                        <div class="stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="rating-count">(25 reviews)</span>
+                    </div>
+                    
+                    <div class="product-price mb-3">
+                        <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                        {% if product.sale_price %}
+                        <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                        <span class="discount-badge">{{ product.discount_percentage }}% OFF</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if product.short_description %}
+                    <div class="product-description mb-4">
+                        <p>{{ product.short_description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="product-options mb-4">
+                        {% if product.color %}
+                        <div class="option-group mb-3">
+                            <label class="form-label">Color:</label>
+                            <div class="color-options">
+                                <span class="color-option active" data-color="{{ product.color }}">{{ product.color }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.size %}
+                        <div class="option-group mb-3">
+                            <label class="form-label">Size:</label>
+                            <select class="form-select" style="width: auto;">
+                                <option value="{{ product.size }}">{{ product.size }}</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="option-group mb-3">
+                            <label class="form-label">Quantity:</label>
+                            <div class="quantity-controls d-flex align-items-center">
+                                <button class="btn btn-outline-secondary btn-sm" id="decrease-qty">-</button>
+                                <input type="number" class="form-control text-center mx-2" id="quantity" value="1" min="1" max="{{ product.stock_quantity }}" style="width: 80px;">
+                                <button class="btn btn-outline-secondary btn-sm" id="increase-qty">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-actions mb-4">
+                        <button class="btn btn-primary btn-lg me-3 add-to-cart" data-product-id="{{ product.id }}">
+                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                        </button>
+                        <button class="btn btn-outline-secondary btn-lg me-3">
+                            <i class="fas fa-heart me-2"></i>Wishlist
+                        </button>
+                        <button class="btn btn-outline-info btn-lg">
+                            <i class="fas fa-share me-2"></i>Share
+                        </button>
+                    </div>
+                    
+                    <div class="product-meta">
+                        <div class="meta-item">
+                            <strong>SKU:</strong> {{ product.sku }}
+                        </div>
+                        <div class="meta-item">
+                            <strong>Category:</strong> 
+                            <a href="{{ url_for('frontend.category', slug=product.category.slug) }}">{{ product.category.name }}</a>
+                        </div>
+                        <div class="meta-item">
+                            <strong>Stock Status:</strong> 
+                            <span class="badge {% if product.is_in_stock %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if product.is_in_stock %}In Stock{% else %}Out of Stock{% endif %}
+                            </span>
+                        </div>
+                        {% if product.weight %}
+                        <div class="meta-item">
+                            <strong>Weight:</strong> {{ product.weight }} kg
+                        </div>
+                        {% endif %}
+                        {% if product.dimensions %}
+                        <div class="meta-item">
+                            <strong>Dimensions:</strong> {{ product.dimensions }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Tabs -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="product-tabs">
+                    <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab">
+                                Description
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab">
+                                Specifications
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+                                Reviews (25)
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="productTabsContent">
+                        <div class="tab-pane fade show active" id="description" role="tabpanel">
+                            <div class="p-4">
+                                {% if product.description %}
+                                <p>{{ product.description }}</p>
+                                {% else %}
+                                <p>No description available for this product.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="specifications" role="tabpanel">
+                            <div class="p-4">
+                                <table class="table table-striped">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>SKU</strong></td>
+                                            <td>{{ product.sku }}</td>
+                                        </tr>
+                                        {% if product.weight %}
+                                        <tr>
+                                            <td><strong>Weight</strong></td>
+                                            <td>{{ product.weight }} kg</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if product.dimensions %}
+                                        <tr>
+                                            <td><strong>Dimensions</strong></td>
+                                            <td>{{ product.dimensions }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if product.color %}
+                                        <tr>
+                                            <td><strong>Color</strong></td>
+                                            <td>{{ product.color }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if product.size %}
+                                        <tr>
+                                            <td><strong>Size</strong></td>
+                                            <td>{{ product.size }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if product.material %}
+                                        <tr>
+                                            <td><strong>Material</strong></td>
+                                            <td>{{ product.material }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="reviews" role="tabpanel">
+                            <div class="p-4">
+                                <div class="reviews-summary mb-4">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <div class="rating-overview text-center">
+                                                <div class="rating-score">4.8</div>
+                                                <div class="stars">
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                </div>
+                                                <div class="rating-count">Based on 25 reviews</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="rating-breakdown">
+                                                <div class="rating-bar">
+                                                    <span>5</span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width: 80%"></div>
+                                                    </div>
+                                                    <span>20</span>
+                                                </div>
+                                                <div class="rating-bar">
+                                                    <span>4</span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width: 20%"></div>
+                                                    </div>
+                                                    <span>5</span>
+                                                </div>
+                                                <div class="rating-bar">
+                                                    <span>3</span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width: 0%"></div>
+                                                    </div>
+                                                    <span>0</span>
+                                                </div>
+                                                <div class="rating-bar">
+                                                    <span>2</span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width: 0%"></div>
+                                                    </div>
+                                                    <span>0</span>
+                                                </div>
+                                                <div class="rating-bar">
+                                                    <span>1</span>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" style="width: 0%"></div>
+                                                    </div>
+                                                    <span>0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="reviews-list">
+                                    <div class="review-item mb-4">
+                                        <div class="review-header">
+                                            <div class="reviewer-info">
+                                                <strong>John Doe</strong>
+                                                <div class="stars">
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                </div>
+                                            </div>
+                                            <div class="review-date">2 days ago</div>
+                                        </div>
+                                        <div class="review-content">
+                                            <p>Great product! Highly recommended. The quality is excellent and it arrived quickly.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="review-item mb-4">
+                                        <div class="review-header">
+                                            <div class="reviewer-info">
+                                                <strong>Jane Smith</strong>
+                                                <div class="stars">
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="fas fa-star"></i>
+                                                    <i class="far fa-star"></i>
+                                                </div>
+                                            </div>
+                                            <div class="review-date">1 week ago</div>
+                                        </div>
+                                        <div class="review-content">
+                                            <p>Good product overall, but could be better. The packaging was a bit damaged.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Products -->
+        {% if related_products %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3>Related Products</h3>
+                <div class="row">
+                    {% for related_product in related_products %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% set primary_image = related_product.get_primary_image() %}
+                                {% if primary_image %}
+                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ related_product.name }}" class="img-fluid">
+                                {% else %}
+                                <div class="product-placeholder">
+                                    <i class="fas fa-image fa-3x"></i>
+                                </div>
+                                {% endif %}
+                                <div class="product-actions">
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ related_product.id }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if related_product.is_on_sale %}
+                                <div class="product-badge sale-badge">{{ related_product.discount_percentage }}% Off</div>
+                                {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h6 class="product-name">
+                                    <a href="{{ url_for('frontend.product_detail', slug=related_product.slug) }}">{{ related_product.name }}</a>
+                                </h6>
+                                <div class="product-price">
+                                    <span class="current-price">${{ "%.2f"|format(related_product.current_price) }}</span>
+                                    {% if related_product.sale_price %}
+                                    <span class="old-price">${{ "%.2f"|format(related_product.regular_price) }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Thumbnail image click
+    $('.thumbnail-image').click(function() {
+        $('.thumbnail-image').removeClass('active');
+        $(this).addClass('active');
+        $('#main-product-image').attr('src', $(this).data('main-src'));
+    });
+    
+    // Quantity controls
+    $('#increase-qty').click(function() {
+        var currentVal = parseInt($('#quantity').val());
+        var maxVal = parseInt($('#quantity').attr('max'));
+        if (currentVal < maxVal) {
+            $('#quantity').val(currentVal + 1);
+        }
+    });
+    
+    $('#decrease-qty').click(function() {
+        var currentVal = parseInt($('#quantity').val());
+        if (currentVal > 1) {
+            $('#quantity').val(currentVal - 1);
+        }
+    });
+    
+    // Add to cart
+    $('.add-to-cart').click(function() {
+        var productId = $(this).data('product-id');
+        var quantity = parseInt($('#quantity').val());
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/cart/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#cart-count').text(response.cart_count);
+                    button.html('<i class="fas fa-check me-2"></i>Added to Cart');
+                    button.removeClass('btn-primary').addClass('btn-success');
+                    setTimeout(function() {
+                        button.html('<i class="fas fa-shopping-cart me-2"></i>Add to Cart');
+                        button.removeClass('btn-success').addClass('btn-primary');
+                    }, 3000);
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

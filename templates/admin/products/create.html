@@ -1,0 +1,232 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Create Product{% endblock %}
+
+{% block content %}
+<div class="product-form">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4>Create Product</h4>
+            <p class="text-muted">Add a new product to your store</p>
+        </div>
+        <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Products
+        </a>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <!-- Basic Information -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Basic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sku" class="form-label">SKU *</label>
+                                <input type="text" class="form-control" id="sku" name="sku" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">Category *</label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="draft">Draft</option>
+                                    <option value="published">Published</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="short_description" class="form-label">Short Description</label>
+                                <textarea class="form-control" id="short_description" name="short_description" rows="3"></textarea>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="5"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pricing -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Pricing</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="regular_price" class="form-label">Regular Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="regular_price" name="regular_price" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sale_price" class="form-label">Sale Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="sale_price" name="sale_price" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Inventory -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Inventory</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="manage_stock" name="manage_stock" checked>
+                                    <label class="form-check-label" for="manage_stock">
+                                        Manage Stock
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_quantity" class="form-label">Stock Quantity</label>
+                                <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Product Images -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Product Images</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="images" class="form-label">Upload Images</label>
+                            <input type="file" class="form-control" id="images" name="images" multiple accept="image/*">
+                            <div class="form-text">You can select multiple images. The first image will be set as the primary image.</div>
+                        </div>
+                        <div id="image-preview" class="row"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Publish -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Publish</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="featured" name="featured">
+                                <label class="form-check-label" for="featured">
+                                    Featured Product
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Active
+                                </label>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Product</button>
+                            <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Product Attributes -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Product Attributes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="weight" class="form-label">Weight (kg)</label>
+                            <input type="number" class="form-control" id="weight" name="weight" step="0.01" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="dimensions" class="form-label">Dimensions (L×W×H)</label>
+                            <input type="text" class="form-control" id="dimensions" name="dimensions" placeholder="e.g., 10×5×2">
+                        </div>
+                        <div class="mb-3">
+                            <label for="color" class="form-label">Color</label>
+                            <input type="text" class="form-control" id="color" name="color">
+                        </div>
+                        <div class="mb-3">
+                            <label for="size" class="form-label">Size</label>
+                            <input type="text" class="form-control" id="size" name="size">
+                        </div>
+                        <div class="mb-3">
+                            <label for="material" class="form-label">Material</label>
+                            <input type="text" class="form-control" id="material" name="material">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Image preview
+    $('#images').change(function() {
+        var files = this.files;
+        var preview = $('#image-preview');
+        preview.empty();
+        
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file.type.startsWith('image/')) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var col = $('<div class="col-md-6 mb-3"></div>');
+                    var card = $('<div class="card"></div>');
+                    var img = $('<img class="card-img-top" style="height: 150px; object-fit: cover;">');
+                    img.attr('src', e.target.result);
+                    card.append(img);
+                    col.append(card);
+                    preview.append(col);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+    
+    // Auto-generate SKU from product name
+    $('#name').on('input', function() {
+        var name = $(this).val();
+        var sku = name.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '-')
+            .substring(0, 20);
+        $('#sku').val(sku);
+    });
+});
+</script>
+{% endblock %}

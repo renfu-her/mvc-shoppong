@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header py-4 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1>Shopping Cart</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item active">Cart</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Cart Content -->
+<section class="cart-content py-5">
+    <div class="container">
+        {% if cart and cart.items %}
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="cart-items">
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart.items %}
+                                <tr class="cart-item" data-product-id="{{ item.product_id }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="product-image me-3">
+                                                {% set primary_image = item.product.get_primary_image() %}
+                                                {% if primary_image %}
+                                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ item.product.name }}" class="img-fluid" style="width: 80px; height: 80px; object-fit: cover;">
+                                                {% else %}
+                                                <div class="product-placeholder d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; background-color: #f8f9fa;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="product-info">
+                                                <h6 class="product-name mb-1">
+                                                    <a href="{{ url_for('frontend.product_detail', slug=item.product.slug) }}">{{ item.product.name }}</a>
+                                                </h6>
+                                                <div class="product-sku text-muted">SKU: {{ item.product.sku }}</div>
+                                                {% if item.product.color %}
+                                                <div class="product-color text-muted">Color: {{ item.product.color }}</div>
+                                                {% endif %}
+                                                {% if item.product.size %}
+                                                <div class="product-size text-muted">Size: {{ item.product.size }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="product-price">
+                                            <span class="current-price">${{ "%.2f"|format(item.unit_price) }}</span>
+                                            {% if item.product.sale_price %}
+                                            <div class="old-price">${{ "%.2f"|format(item.product.regular_price) }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="quantity-controls d-flex align-items-center">
+                                            <button class="btn btn-outline-secondary btn-sm decrease-qty" data-product-id="{{ item.product_id }}">-</button>
+                                            <input type="number" class="form-control text-center mx-2 quantity-input" value="{{ item.quantity }}" min="1" max="{{ item.product.stock_quantity }}" style="width: 80px;" data-product-id="{{ item.product_id }}">
+                                            <button class="btn btn-outline-secondary btn-sm increase-qty" data-product-id="{{ item.product_id }}">+</button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="item-total">
+                                            <strong>${{ "%.2f"|format(item.total_price) }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm remove-item" data-product-id="{{ item.product_id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="cart-actions mt-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('frontend.shop') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                            </a>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-outline-secondary" id="clear-cart">
+                                <i class="fas fa-trash me-2"></i>Clear Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="cart-summary">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Cart Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="summary-item d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span id="cart-subtotal">${{ "%.2f"|format(cart.subtotal) }}</span>
+                            </div>
+                            <div class="summary-item d-flex justify-content-between mb-2">
+                                <span>Shipping:</span>
+                                <span id="shipping-fee">$0.00</span>
+                            </div>
+                            <div class="summary-item d-flex justify-content-between mb-2">
+                                <span>Tax:</span>
+                                <span id="tax-amount">$0.00</span>
+                            </div>
+                            <hr>
+                            <div class="summary-item d-flex justify-content-between mb-3">
+                                <strong>Total:</strong>
+                                <strong id="cart-total">${{ "%.2f"|format(cart.total) }}</strong>
+                            </div>
+                            
+                            <div class="coupon-section mb-3">
+                                <label for="coupon-code" class="form-label">Coupon Code</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="coupon-code" placeholder="Enter coupon code">
+                                    <button class="btn btn-outline-primary" type="button" id="apply-coupon">Apply</button>
+                                </div>
+                                <div id="coupon-message" class="mt-2"></div>
+                            </div>
+                            
+                            <a href="{{ url_for('frontend.checkout') }}" class="btn btn-primary btn-lg w-100">
+                                Proceed to Checkout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-cart text-center py-5">
+            <div class="empty-cart-icon mb-4">
+                <i class="fas fa-shopping-cart fa-5x text-muted"></i>
+            </div>
+            <h3>Your cart is empty</h3>
+            <p class="text-muted mb-4">Looks like you haven't added any items to your cart yet.</p>
+            <a href="{{ url_for('frontend.shop') }}" class="btn btn-primary btn-lg">
+                Start Shopping
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Quantity controls
+    $('.increase-qty').click(function() {
+        var productId = $(this).data('product-id');
+        var input = $('.quantity-input[data-product-id="' + productId + '"]');
+        var currentVal = parseInt(input.val());
+        var maxVal = parseInt(input.attr('max'));
+        
+        if (currentVal < maxVal) {
+            updateCartItem(productId, currentVal + 1);
+        }
+    });
+    
+    $('.decrease-qty').click(function() {
+        var productId = $(this).data('product-id');
+        var input = $('.quantity-input[data-product-id="' + productId + '"]');
+        var currentVal = parseInt(input.val());
+        
+        if (currentVal > 1) {
+            updateCartItem(productId, currentVal - 1);
+        }
+    });
+    
+    // Quantity input change
+    $('.quantity-input').change(function() {
+        var productId = $(this).data('product-id');
+        var quantity = parseInt($(this).val());
+        
+        if (quantity > 0) {
+            updateCartItem(productId, quantity);
+        }
+    });
+    
+    // Remove item
+    $('.remove-item').click(function() {
+        var productId = $(this).data('product-id');
+        var row = $(this).closest('.cart-item');
+        
+        if (confirm('Are you sure you want to remove this item from your cart?')) {
+            $.ajax({
+                url: '/api/cart/remove',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    product_id: productId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        row.fadeOut(300, function() {
+                            $(this).remove();
+                            updateCartSummary(response.subtotal);
+                            $('#cart-count').text(response.cart_count);
+                            
+                            // Check if cart is empty
+                            if ($('.cart-item').length === 0) {
+                                location.reload();
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+    
+    // Clear cart
+    $('#clear-cart').click(function() {
+        if (confirm('Are you sure you want to clear your cart?')) {
+            // This would need a clear cart endpoint
+            location.reload();
+        }
+    });
+    
+    // Apply coupon
+    $('#apply-coupon').click(function() {
+        var couponCode = $('#coupon-code').val().trim();
+        
+        if (!couponCode) {
+            showCouponMessage('Please enter a coupon code', 'error');
+            return;
+        }
+        
+        $.ajax({
+            url: '/api/validate-coupon',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                code: couponCode
+            }),
+            success: function(response) {
+                if (response.success) {
+                    showCouponMessage('Coupon applied successfully! Discount: $' + response.discount.toFixed(2), 'success');
+                    // Update cart total with discount
+                } else {
+                    showCouponMessage(response.message, 'error');
+                }
+            }
+        });
+    });
+    
+    function updateCartItem(productId, quantity) {
+        $.ajax({
+            url: '/api/cart/update',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('.quantity-input[data-product-id="' + productId + '"]').val(quantity);
+                    updateCartSummary(response.subtotal);
+                    $('#cart-count').text(response.cart_count);
+                }
+            }
+        });
+    }
+    
+    function updateCartSummary(subtotal) {
+        $('#cart-subtotal').text('$' + subtotal.toFixed(2));
+        $('#cart-total').text('$' + subtotal.toFixed(2));
+    }
+    
+    function showCouponMessage(message, type) {
+        var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        $('#coupon-message').html('<div class="alert ' + alertClass + ' alert-sm">' + message + '</div>');
+        
+        setTimeout(function() {
+            $('#coupon-message').empty();
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

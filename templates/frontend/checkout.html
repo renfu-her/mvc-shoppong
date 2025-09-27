@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header py-4 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1>Checkout</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.cart') }}">Cart</a></li>
+                        <li class="breadcrumb-item active">Checkout</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Checkout Content -->
+<section class="checkout-content py-5">
+    <div class="container">
+        <form id="checkout-form" method="POST" action="{{ url_for('frontend.checkout') }}">
+            <div class="row">
+                <!-- Checkout Form -->
+                <div class="col-lg-8">
+                    <div class="checkout-form">
+                        <!-- Billing Information -->
+                        <div class="checkout-section mb-5">
+                            <h4>Billing Information</h4>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_first_name" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="billing_first_name" name="billing_first_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="billing_last_name" name="billing_last_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_email" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="billing_email" name="billing_email" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="billing_phone" name="billing_phone">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_company" class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="billing_company" name="billing_company">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="billing_country" class="form-label">Country *</label>
+                                    <select class="form-select" id="billing_country" name="billing_country" required>
+                                        <option value="">Select Country</option>
+                                        <option value="US">United States</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="AU">Australia</option>
+                                        <option value="DE">Germany</option>
+                                        <option value="FR">France</option>
+                                        <option value="IT">Italy</option>
+                                        <option value="ES">Spain</option>
+                                        <option value="JP">Japan</option>
+                                        <option value="CN">China</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label for="billing_address_1" class="form-label">Street Address *</label>
+                                    <input type="text" class="form-control" id="billing_address_1" name="billing_address_1" required>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label for="billing_address_2" class="form-label">Apartment, suite, unit, etc. (optional)</label>
+                                    <input type="text" class="form-control" id="billing_address_2" name="billing_address_2">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="billing_city" class="form-label">City *</label>
+                                    <input type="text" class="form-control" id="billing_city" name="billing_city" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="billing_state" class="form-label">State *</label>
+                                    <input type="text" class="form-control" id="billing_state" name="billing_state" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="billing_postcode" class="form-label">Postal Code *</label>
+                                    <input type="text" class="form-control" id="billing_postcode" name="billing_postcode" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Shipping Information -->
+                        <div class="checkout-section mb-5">
+                            <div class="d-flex align-items-center mb-3">
+                                <h4 class="mb-0 me-3">Shipping Information</h4>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="same-as-billing">
+                                    <label class="form-check-label" for="same-as-billing">
+                                        Same as billing address
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="shipping-fields">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="shipping_first_name" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="shipping_first_name" name="shipping_first_name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="shipping_last_name" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="shipping_last_name" name="shipping_last_name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="shipping_company" class="form-label">Company Name</label>
+                                        <input type="text" class="form-control" id="shipping_company" name="shipping_company">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="shipping_country" class="form-label">Country *</label>
+                                        <select class="form-select" id="shipping_country" name="shipping_country" required>
+                                            <option value="">Select Country</option>
+                                            <option value="US">United States</option>
+                                            <option value="CA">Canada</option>
+                                            <option value="GB">United Kingdom</option>
+                                            <option value="AU">Australia</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="FR">France</option>
+                                            <option value="IT">Italy</option>
+                                            <option value="ES">Spain</option>
+                                            <option value="JP">Japan</option>
+                                            <option value="CN">China</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 mb-3">
+                                        <label for="shipping_address_1" class="form-label">Street Address *</label>
+                                        <input type="text" class="form-control" id="shipping_address_1" name="shipping_address_1" required>
+                                    </div>
+                                    <div class="col-12 mb-3">
+                                        <label for="shipping_address_2" class="form-label">Apartment, suite, unit, etc. (optional)</label>
+                                        <input type="text" class="form-control" id="shipping_address_2" name="shipping_address_2">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="shipping_city" class="form-label">City *</label>
+                                        <input type="text" class="form-control" id="shipping_city" name="shipping_city" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="shipping_state" class="form-label">State *</label>
+                                        <input type="text" class="form-control" id="shipping_state" name="shipping_state" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="shipping_postcode" class="form-label">Postal Code *</label>
+                                        <input type="text" class="form-control" id="shipping_postcode" name="shipping_postcode" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Shipping Method -->
+                        <div class="checkout-section mb-5">
+                            <h4>Shipping Method</h4>
+                            <div class="shipping-methods">
+                                {% for method_data in shipping_methods %}
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="shipping_method" id="shipping-{{ method_data.method.id }}" value="{{ method_data.method.id }}" data-cost="{{ method_data.cost }}" {% if loop.first %}checked{% endif %}>
+                                    <label class="form-check-label" for="shipping-{{ method_data.method.id }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ method_data.method.name }}</strong>
+                                                <div class="text-muted">{{ method_data.estimated_delivery }}</div>
+                                            </div>
+                                            <div class="shipping-cost">
+                                                {% if method_data.cost == 0 %}
+                                                <span class="text-success">Free</span>
+                                                {% else %}
+                                                ${{ "%.2f"|format(method_data.cost) }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Method -->
+                        <div class="checkout-section mb-5">
+                            <h4>Payment Method</h4>
+                            <div class="payment-methods">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="payment-credit-card" value="credit_card" checked>
+                                    <label class="form-check-label" for="payment-credit-card">
+                                        <i class="fas fa-credit-card me-2"></i>Credit Card
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="payment-paypal" value="paypal">
+                                    <label class="form-check-label" for="payment-paypal">
+                                        <i class="fab fa-paypal me-2"></i>PayPal
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="payment-bank-transfer" value="bank_transfer">
+                                    <label class="form-check-label" for="payment-bank-transfer">
+                                        <i class="fas fa-university me-2"></i>Bank Transfer
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Notes -->
+                        <div class="checkout-section mb-5">
+                            <h4>Order Notes</h4>
+                            <textarea class="form-control" id="order_notes" name="order_notes" rows="4" placeholder="Notes about your order, e.g. special notes for delivery."></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="col-lg-4">
+                    <div class="order-summary">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Order Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Cart Items -->
+                                <div class="order-items mb-3">
+                                    {% for item in cart.items %}
+                                    <div class="order-item d-flex align-items-center mb-2">
+                                        <div class="item-image me-3">
+                                            {% set primary_image = item.product.get_primary_image() %}
+                                            {% if primary_image %}
+                                            <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ item.product.name }}" class="img-fluid" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="product-placeholder d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background-color: #f8f9fa;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="item-info flex-grow-1">
+                                            <div class="item-name">{{ item.product.name }}</div>
+                                            <div class="item-details text-muted">
+                                                Qty: {{ item.quantity }} × ${{ "%.2f"|format(item.unit_price) }}
+                                            </div>
+                                        </div>
+                                        <div class="item-total">
+                                            ${{ "%.2f"|format(item.total_price) }}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <hr>
+                                
+                                <!-- Order Totals -->
+                                <div class="order-totals">
+                                    <div class="total-item d-flex justify-content-between mb-2">
+                                        <span>Subtotal:</span>
+                                        <span id="order-subtotal">${{ "%.2f"|format(cart.subtotal) }}</span>
+                                    </div>
+                                    <div class="total-item d-flex justify-content-between mb-2">
+                                        <span>Shipping:</span>
+                                        <span id="order-shipping">$0.00</span>
+                                    </div>
+                                    <div class="total-item d-flex justify-content-between mb-2">
+                                        <span>Tax:</span>
+                                        <span id="order-tax">$0.00</span>
+                                    </div>
+                                    <div class="total-item d-flex justify-content-between mb-2">
+                                        <span>Discount:</span>
+                                        <span id="order-discount">$0.00</span>
+                                    </div>
+                                    <hr>
+                                    <div class="total-item d-flex justify-content-between mb-3">
+                                        <strong>Total:</strong>
+                                        <strong id="order-total">${{ "%.2f"|format(cart.total) }}</strong>
+                                    </div>
+                                </div>
+                                
+                                <!-- Place Order Button -->
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="place-order">
+                                    Place Order
+                                </button>
+                                
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">
+                                        By placing your order, you agree to our 
+                                        <a href="#" class="text-decoration-none">Terms and Conditions</a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Same as billing address
+    $('#same-as-billing').change(function() {
+        if ($(this).is(':checked')) {
+            $('#shipping-fields').hide();
+            $('#shipping-fields input, #shipping-fields select').prop('required', false);
+        } else {
+            $('#shipping-fields').show();
+            $('#shipping-fields input, #shipping-fields select').prop('required', true);
+        }
+    });
+    
+    // Shipping method change
+    $('input[name="shipping_method"]').change(function() {
+        var shippingCost = parseFloat($(this).data('cost'));
+        updateOrderTotal(shippingCost);
+    });
+    
+    // Update order total
+    function updateOrderTotal(shippingCost) {
+        var subtotal = {{ cart.subtotal }};
+        var tax = 0; // Calculate tax if needed
+        var discount = 0; // Apply discount if any
+        
+        $('#order-shipping').text('$' + shippingCost.toFixed(2));
+        $('#order-tax').text('$' + tax.toFixed(2));
+        $('#order-discount').text('$' + discount.toFixed(2));
+        
+        var total = subtotal + shippingCost + tax - discount;
+        $('#order-total').text('$' + total.toFixed(2));
+    }
+    
+    // Form submission
+    $('#checkout-form').submit(function(e) {
+        e.preventDefault();
+        
+        var formData = {
+            customer_email: $('#billing_email').val(),
+            customer_phone: $('#billing_phone').val(),
+            billing_first_name: $('#billing_first_name').val(),
+            billing_last_name: $('#billing_last_name').val(),
+            billing_company: $('#billing_company').val(),
+            billing_address_1: $('#billing_address_1').val(),
+            billing_address_2: $('#billing_address_2').val(),
+            billing_city: $('#billing_city').val(),
+            billing_state: $('#billing_state').val(),
+            billing_postcode: $('#billing_postcode').val(),
+            billing_country: $('#billing_country').val(),
+            shipping_first_name: $('#same-as-billing').is(':checked') ? $('#billing_first_name').val() : $('#shipping_first_name').val(),
+            shipping_last_name: $('#same-as-billing').is(':checked') ? $('#billing_last_name').val() : $('#shipping_last_name').val(),
+            shipping_company: $('#same-as-billing').is(':checked') ? $('#billing_company').val() : $('#shipping_company').val(),
+            shipping_address_1: $('#same-as-billing').is(':checked') ? $('#billing_address_1').val() : $('#shipping_address_1').val(),
+            shipping_address_2: $('#same-as-billing').is(':checked') ? $('#billing_address_2').val() : $('#shipping_address_2').val(),
+            shipping_city: $('#same-as-billing').is(':checked') ? $('#billing_city').val() : $('#shipping_city').val(),
+            shipping_state: $('#same-as-billing').is(':checked') ? $('#billing_state').val() : $('#shipping_state').val(),
+            shipping_postcode: $('#same-as-billing').is(':checked') ? $('#billing_postcode').val() : $('#shipping_postcode').val(),
+            shipping_country: $('#same-as-billing').is(':checked') ? $('#billing_country').val() : $('#shipping_country').val(),
+            payment_method: $('input[name="payment_method"]:checked').val(),
+            customer_notes: $('#order_notes').val(),
+            items: [
+                {% for item in cart.items %}
+                {
+                    product_id: {{ item.product_id }},
+                    quantity: {{ item.quantity }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        };
+        
+        $('#place-order').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+        
+        $.ajax({
+            url: '/api/orders',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    // Redirect to order confirmation page
+                    window.location.href = '/order-confirmation/' + response.data.order_id;
+                } else {
+                    alert('Error: ' + response.message);
+                    $('#place-order').prop('disabled', false).html('Place Order');
+                }
+            },
+            error: function(xhr) {
+                var response = JSON.parse(xhr.responseText);
+                alert('Error: ' + response.message);
+                $('#place-order').prop('disabled', false).html('Place Order');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

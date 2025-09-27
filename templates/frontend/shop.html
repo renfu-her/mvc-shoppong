@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Shop - MVC Shopping{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-header py-4 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1>Shop</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                        <li class="breadcrumb-item active">Shop</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="col-md-6 text-end">
+                <p class="mb-0">Showing {{ products.items|length }} of {{ products.total }} products</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Shop Content -->
+<section class="shop-content py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-3">
+                <div class="shop-sidebar">
+                    <!-- Categories Filter -->
+                    <div class="sidebar-widget mb-4">
+                        <h5>Categories</h5>
+                        <div class="category-filter">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="category" id="all-categories" value="" {% if not current_category %}checked{% endif %}>
+                                <label class="form-check-label" for="all-categories">
+                                    All Categories
+                                </label>
+                            </div>
+                            {% for category_data in categories %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="category" id="category-{{ category_data.category.id }}" value="{{ category_data.category.id }}" {% if current_category == category_data.category.id %}checked{% endif %}>
+                                <label class="form-check-label" for="category-{{ category_data.category.id }}">
+                                    {{ category_data.category.name }}
+                                </label>
+                            </div>
+                            {% for child_data in category_data.children %}
+                            <div class="form-check ms-3">
+                                <input class="form-check-input" type="radio" name="category" id="category-{{ child_data.category.id }}" value="{{ child_data.category.id }}" {% if current_category == child_data.category.id %}checked{% endif %}>
+                                <label class="form-check-label" for="category-{{ child_data.category.id }}">
+                                    {{ child_data.category.name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Price Filter -->
+                    <div class="sidebar-widget mb-4">
+                        <h5>Price Range</h5>
+                        <div class="price-filter">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" class="form-control" id="min-price" placeholder="Min" value="{{ min_price or '' }}">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control" id="max-price" placeholder="Max" value="{{ max_price or '' }}">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm mt-2" id="apply-price-filter">Apply</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Brand Filter -->
+                    <div class="sidebar-widget mb-4">
+                        <h5>Brand</h5>
+                        <div class="brand-filter">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="brand-1">
+                                <label class="form-check-label" for="brand-1">Apple</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="brand-2">
+                                <label class="form-check-label" for="brand-2">Samsung</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="brand-3">
+                                <label class="form-check-label" for="brand-3">Sony</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="brand-4">
+                                <label class="form-check-label" for="brand-4">LG</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Products -->
+            <div class="col-lg-9">
+                <!-- Shop Controls -->
+                <div class="shop-controls mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="view-options">
+                                <button class="btn btn-outline-secondary btn-sm active" id="grid-view">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" id="list-view">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="sort-options d-flex justify-content-end align-items-center">
+                                <label for="sort-select" class="me-2">Sort by:</label>
+                                <select class="form-select form-select-sm" id="sort-select" style="width: auto;">
+                                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+                                    <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                    <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name A-Z</option>
+                                    <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Most Popular</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Products Grid -->
+                <div class="products-grid" id="products-container">
+                    <div class="row">
+                        {% for product in products.items %}
+                        <div class="col-lg-4 col-md-6 mb-4 product-item">
+                            <div class="product-card">
+                                <div class="product-image">
+                                    {% set primary_image = product.get_primary_image() %}
+                                    {% if primary_image %}
+                                    <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                    {% else %}
+                                    <div class="product-placeholder">
+                                        <i class="fas fa-image fa-3x"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="product-actions">
+                                        <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ product.id }}">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-heart"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% if product.is_on_sale %}
+                                    <div class="product-badge sale-badge">{{ product.discount_percentage }}% Off</div>
+                                    {% endif %}
+                                </div>
+                                <div class="product-info">
+                                    <h6 class="product-name">
+                                        <a href="{{ url_for('frontend.product_detail', slug=product.slug) }}">{{ product.name }}</a>
+                                    </h6>
+                                    <div class="product-price">
+                                        <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                        {% if product.sale_price %}
+                                        <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="product-rating">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <span class="rating-count">(21)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                {% if products.pages > 1 %}
+                <nav aria-label="Products pagination" class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        {% if products.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('frontend.shop', page=products.prev_num, category=current_category, search=search, sort=sort_by, min_price=min_price, max_price=max_price) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in products.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != products.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('frontend.shop', page=page_num, category=current_category, search=search, sort=sort_by, min_price=min_price, max_price=max_price) }}">{{ page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if products.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('frontend.shop', page=products.next_num, category=current_category, search=search, sort=sort_by, min_price=min_price, max_price=max_price) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add to cart functionality
+    $('.add-to-cart').click(function() {
+        var productId = $(this).data('product-id');
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/cart/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                product_id: productId,
+                quantity: 1
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#cart-count').text(response.cart_count);
+                    button.html('<i class="fas fa-check"></i>');
+                    button.removeClass('btn-outline-primary').addClass('btn-success');
+                    setTimeout(function() {
+                        button.html('<i class="fas fa-shopping-cart"></i>');
+                        button.removeClass('btn-success').addClass('btn-outline-primary');
+                    }, 2000);
+                }
+            }
+        });
+    });
+    
+    // Category filter
+    $('input[name="category"]').change(function() {
+        var categoryId = $(this).val();
+        var url = new URL(window.location);
+        if (categoryId) {
+            url.searchParams.set('category', categoryId);
+        } else {
+            url.searchParams.delete('category');
+        }
+        window.location.href = url.toString();
+    });
+    
+    // Price filter
+    $('#apply-price-filter').click(function() {
+        var minPrice = $('#min-price').val();
+        var maxPrice = $('#max-price').val();
+        var url = new URL(window.location);
+        
+        if (minPrice) {
+            url.searchParams.set('min_price', minPrice);
+        } else {
+            url.searchParams.delete('min_price');
+        }
+        
+        if (maxPrice) {
+            url.searchParams.set('max_price', maxPrice);
+        } else {
+            url.searchParams.delete('max_price');
+        }
+        
+        window.location.href = url.toString();
+    });
+    
+    // Sort filter
+    $('#sort-select').change(function() {
+        var sortBy = $(this).val();
+        var url = new URL(window.location);
+        url.searchParams.set('sort', sortBy);
+        window.location.href = url.toString();
+    });
+    
+    // View toggle
+    $('#grid-view').click(function() {
+        $(this).addClass('active');
+        $('#list-view').removeClass('active');
+        $('.product-item').removeClass('col-12').addClass('col-lg-4 col-md-6');
+        $('.product-card').removeClass('d-flex');
+    });
+    
+    $('#list-view').click(function() {
+        $(this).addClass('active');
+        $('#grid-view').removeClass('active');
+        $('.product-item').removeClass('col-lg-4 col-md-6').addClass('col-12');
+        $('.product-card').addClass('d-flex');
+    });
+});
+</script>
+{% endblock %}
