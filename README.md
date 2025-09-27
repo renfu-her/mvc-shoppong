@@ -56,7 +56,7 @@ A modern e-commerce platform built with Python Flask, featuring a complete MVC a
 2. **Create virtual environment**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/Scripts/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies**
