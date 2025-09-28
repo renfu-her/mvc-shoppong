@@ -350,6 +350,11 @@ def edit_ad(id):
         ad.is_active = bool(request.form.get('is_active'))
 
         try:
+            ad.status = 'active' if ad.is_active else 'inactive'
+        except Exception:
+            pass
+
+        try:
             desktop_file = request.files.get('desktop_image')
             mobile_file = request.files.get('mobile_image')
 
@@ -425,6 +430,12 @@ def create_ad():
                 sort_order=int(request.form.get('sort_order', 0)),
                 is_active=bool(request.form.get('is_active'))
             )
+
+            # Keep legacy status column in sync if present
+            try:
+                ad.status = 'active' if ad.is_active else 'inactive'
+            except Exception:
+                pass
             
             db.session.add(ad)
             db.session.flush()  # Get the ID

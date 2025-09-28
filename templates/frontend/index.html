@@ -4,7 +4,48 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section">
+<section class="hero-section{% if not banners %} hero-section-static{% endif %}">
+    {% if banners %}
+    <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="6000" data-bs-pause="hover">
+        {% if banners|length > 1 %}
+        <div class="carousel-indicators">
+            {% for banner in banners %}
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ loop.index0 }}" {% if loop.first %}class="active" aria-current="true"{% endif %} aria-label="Slide {{ loop.index }}"></button>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="carousel-inner">
+            {% for banner in banners %}
+            {% set desktop_path = banner.desktop_image or banner.mobile_image %}
+            {% set mobile_path = banner.mobile_image or banner.desktop_image %}
+            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                {% if banner.link_url %}<a href="{{ banner.link_url }}" target="{{ banner.link_target or '_self' }}">{% endif %}
+                <picture>
+                    {% if mobile_path %}<source media="(max-width: 767.98px)" srcset="{{ url_for('static', filename=((mobile_path) | replace('\\', '/'))) }}">{% endif %}
+                    <img src="{{ url_for('static', filename=((desktop_path or 'images/placeholder.jpg') | replace('\\', '/'))) }}" class="d-block w-100 hero-banner-image" alt="{{ banner.title or 'Advertisement' }}">
+                </picture>
+                {% if banner.link_url %}</a>{% endif %}
+                {% if banner.title or banner.description %}
+                <div class="carousel-caption d-none d-md-block hero-banner-caption">
+                    {% if banner.title %}<h5>{{ banner.title }}</h5>{% endif %}
+                    {% if banner.description %}<p>{{ banner.description }}</p>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if banners|length > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+        {% endif %}
+    </div>
+    {% else %}
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6">
@@ -25,6 +66,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </section>
 
 <!-- Categories Section -->

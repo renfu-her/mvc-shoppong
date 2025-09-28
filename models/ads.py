@@ -20,6 +20,7 @@ class Ads(db.Model):
     position = db.Column(db.String(50), nullable=False)  # homepage_banner, sidebar, footer, etc.
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
+    status = db.Column(db.String(20), default='inactive')
     
     # Date range
     start_date = db.Column(db.DateTime, nullable=True)
@@ -62,27 +63,76 @@ class Ads(db.Model):
         db.session.commit()
     
     @staticmethod
+    def _apply_active_filters(query):
+        """Apply active/status filters to an Ads query"""
+        active_clauses = []
+
+        status_attr = getattr(Ads, 'status', None)
+        if status_attr is not None:
+            active_clauses.append(status_attr == 'active')
+
+        if hasattr(Ads, 'is_active'):
+            active_clauses.append(Ads.is_active.is_(True))
+
+        if active_clauses:
+            query = query.filter(db.or_(*active_clauses))
+
+        return query
+
+    @staticmethod
     def get_active_ads_by_position(position):
-        """Get active ads by position"""
+        """Get active ads by exact position"""
+        return Ads.get_active_ads_by_positions([position])
+
+    @staticmethod
+    def get_active_ads_by_positions(positions=None):
+        """Get active ads filtered by a collection of positions"""
         now = datetime.utcnow()
-        return Ads.query.filter(
-            Ads.position == position,
-            Ads.is_active == True,
+        query = Ads.query
+
+        if positions:
+            query = query.filter(Ads.position.in_(positions))
+
+        query = Ads._apply_active_filters(query)
+
+        query = query.filter(
             db.or_(Ads.start_date.is_(None), Ads.start_date <= now),
             db.or_(Ads.end_date.is_(None), Ads.end_date >= now)
-        ).order_by(Ads.sort_order).all()
-    
+        )
+
+        return query.order_by(Ads.sort_order, Ads.created_at.desc()).all()
+
     @staticmethod
     def get_homepage_banners():
-        """Get homepage banner ads"""
-        return Ads.get_active_ads_by_position('homepage_banner')
-    
+        """Get homepage banner ads across common position aliases"""
+        home_positions = ['homepage_banner', 'homepage-hero', 'home_banner', 'homepage', 'home-hero']
+        now = datetime.utcnow()
+
+        query = Ads.query.filter(
+            db.or_(
+                Ads.position.in_(home_positions),
+                Ads.position.ilike('home%'),
+                Ads.position.ilike('%banner%')
+            )
+        )
+
+        query = Ads._apply_active_filters(query)
+
+        query = query.filter(
+            db.or_(Ads.start_date.is_(None), Ads.start_date <= now),
+            db.or_(Ads.end_date.is_(None), Ads.end_date >= now),
+            db.or_(Ads.desktop_image.isnot(None), Ads.mobile_image.isnot(None))
+        )
+
+        return query.order_by(Ads.sort_order, Ads.created_at.desc()).all()
+
     @staticmethod
     def get_sidebar_ads():
         """Get sidebar ads"""
         return Ads.get_active_ads_by_position('sidebar')
-    
+
     @staticmethod
     def get_footer_ads():
         """Get footer ads"""
         return Ads.get_active_ads_by_position('footer')
+
