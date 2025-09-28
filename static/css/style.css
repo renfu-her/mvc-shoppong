@@ -55,6 +55,18 @@ body {
     line-height: 18px;
 }
 
+
+.header-actions .wishlist-icon {
+    position: relative;
+}
+
+.header-actions .wishlist-icon .badge {
+    font-size: 0.7rem;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+}
+
 /* Navigation Styles */
 .navbar {
     background: #f8f9fa !important;
@@ -87,6 +99,20 @@ body {
     left: 100%;
     margin-top: -1px;
 }
+.dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
+.dropdown-menu > .dropdown-submenu > .dropdown-item.dropdown-toggle::after {
+    float: right;
+    margin-top: 0.35rem;
+    transform: rotate(-90deg);
+}
+
+.dropdown-menu > .dropdown-submenu > .dropdown-menu {
+    margin-left: 0.25rem;
+}
+
 
 /* Hero Section */
 .hero-section {
@@ -189,7 +215,7 @@ body {
     transform: scale(1.05);
 }
 
-.product-actions {
+.product-card .product-actions {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -201,7 +227,7 @@ body {
     opacity: 1;
 }
 
-.product-actions .btn {
+.product-card .product-actions .btn {
     margin-bottom: 5px;
     border-radius: 50%;
     width: 35px;

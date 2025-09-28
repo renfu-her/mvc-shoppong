@@ -1,4 +1,4 @@
-// Main JavaScript for MVC Shopping
+﻿// Main JavaScript for MVC Shopping
 
 $(document).ready(function() {
     // Initialize tooltips
@@ -171,24 +171,64 @@ $(document).ready(function() {
     });
     
     // Wishlist functionality
-    $('.wishlist-btn').click(function(e) {
+    $('.wishlist-btn').on('click', function(e) {
         e.preventDefault();
-        
-        var productId = $(this).data('product-id');
+
         var button = $(this);
+        var productId = button.data('product-id');
+        var loginUrl = button.data('login-url') || '/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
         var icon = button.find('i');
-        
-        if (icon.hasClass('far')) {
-            // Add to wishlist
-            icon.removeClass('far').addClass('fas');
-            button.addClass('text-danger');
-            showNotification('Added to wishlist', 'success');
-        } else {
-            // Remove from wishlist
-            icon.removeClass('fas').addClass('far');
-            button.removeClass('text-danger');
-            showNotification('Removed from wishlist', 'info');
-        }
+        var hasLabel = button.find('.wishlist-label').length > 0;
+        var labelEl = button.find('.wishlist-label');
+        var labelIn = button.data('label-in') || (hasLabel ? 'In Wishlist' : '');
+        var labelOut = button.data('label-out') || (hasLabel ? 'Wishlist' : '');
+
+        $.ajax({
+            url: '/api/wishlist/toggle',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ product_id: productId }),
+            success: function(response) {
+                if (!response.success) {
+                    if (response.requires_login) {
+                        window.location.href = loginUrl;
+                        return;
+                    }
+                    showNotification(response.message || 'Unable to update wishlist', 'error');
+                    return;
+                }
+
+                var added = response.action === 'added';
+                button.data('in-wishlist', added);
+
+                if (added) {
+                    icon.removeClass('far').addClass('fas');
+                    button.addClass('text-danger');
+                    showNotification('Added to wishlist', 'success');
+                    if (hasLabel) { labelEl.text(labelIn); }
+                } else {
+                    icon.removeClass('fas').addClass('far');
+                    button.removeClass('text-danger');
+                    showNotification('Removed from wishlist', 'info');
+                    if (hasLabel) { labelEl.text(labelOut); }
+                }
+
+                if (response.count !== undefined) {
+                    $('#wishlist-count').text(response.count);
+                }
+
+                if (!added && button.data('reload-on-remove')) {
+                    window.location.reload();
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 401) {
+                    window.location.href = loginUrl;
+                    return;
+                }
+                showNotification('Unable to update wishlist. Please try again.', 'error');
+            }
+        });
     });
     
     // Product comparison
@@ -364,3 +404,14 @@ $('.share-btn').click(function(e) {
     var title = document.title;
     shareProduct(url, title);
 });
+function updateWishlistCount() {
+    $.ajax({
+        url: '/api/wishlist/count',
+        method: 'GET',
+        success: function(response) {
+            if (response && typeof response.count !== 'undefined') {
+                $('#wishlist-count').text(response.count);
+            }
+        }
+    });
+}

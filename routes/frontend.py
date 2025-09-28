@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
+﻿from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
 from decimal import Decimal
-from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User
+from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User, WishList
 from models.order import Order, OrderItem
 from utils.helpers import paginate_query, generate_order_number
 from utils.ecpay import ECPayService, ECPAY_TEST_CONFIG
@@ -99,13 +99,16 @@ def index():
     # Get categories
     categories = Category.get_three_level_categories()
     
+    wishlist_product_ids = get_user_wishlist_product_ids()
+
     return render_template('frontend/index.html',
                          featured_products=featured_products,
                          new_arrivals=new_arrivals,
                          best_sellers=best_sellers,
                          on_sale_products=on_sale_products,
                          banners=banners,
-                         categories=categories)
+                         categories=categories,
+                         wishlist_product_ids=wishlist_product_ids)
 
 @frontend_bp.route('/shop')
 def shop():
@@ -159,6 +162,8 @@ def shop():
     # Get categories for filter
     categories = Category.get_three_level_categories()
     
+    wishlist_product_ids = get_user_wishlist_product_ids()
+
     return render_template('frontend/shop.html',
                          products=products,
                          categories=categories,
@@ -166,7 +171,8 @@ def shop():
                          search=search,
                          sort_by=sort_by,
                          min_price=min_price,
-                         max_price=max_price)
+                         max_price=max_price,
+                         wishlist_product_ids=wishlist_product_ids)
 
 @frontend_bp.route('/product/<slug>')
 def product_detail(slug):
@@ -181,9 +187,21 @@ def product_detail(slug):
         Product.status == 'published'
     ).limit(4).all()
     
+    wishlist_product_ids = get_user_wishlist_product_ids()
+    product_in_wishlist = product.id in wishlist_product_ids
+
     return render_template('frontend/product_detail.html',
                          product=product,
-                         related_products=related_products)
+                         related_products=related_products,
+                         product_in_wishlist=product_in_wishlist,
+                         wishlist_product_ids=wishlist_product_ids)
+
+@frontend_bp.route('/wishlist')
+@login_required
+def wishlist():
+    """Display user's wishlist"""
+    items = WishList.query.filter_by(user_id=current_user.id).order_by(WishList.created_at.desc()).all()
+    return render_template('frontend/wishlist.html', items=items)
 
 @frontend_bp.route('/cart')
 def cart():
@@ -493,9 +511,12 @@ def category(slug):
     
     products = paginate_query(query, page, 12)
     
+    wishlist_product_ids = get_user_wishlist_product_ids()
+
     return render_template('frontend/category.html',
                          category=category,
-                         products=products)
+                         products=products,
+                         wishlist_product_ids=wishlist_product_ids)
 
 @frontend_bp.route('/search')
 def search():
@@ -529,6 +550,47 @@ def api_add_to_cart():
         'message': 'Item added to cart',
         'cart_count': cart.total_items
     })
+
+@frontend_bp.route('/api/wishlist/toggle', methods=['POST'])
+@login_required
+def api_toggle_wishlist():
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'message': 'Please log in to manage your wishlist.', 'requires_login': True}), 401
+
+    data = request.get_json() or {}
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+
+    if not product_id:
+        return jsonify({'success': False, 'message': 'Product ID required'}), 400
+
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({'success': False, 'message': 'Product not found'}), 404
+
+    try:
+        quantity = max(1, int(quantity))
+    except (TypeError, ValueError):
+        quantity = 1
+
+    wishlist_item = WishList.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+
+    if wishlist_item:
+        db.session.delete(wishlist_item)
+        db.session.commit()
+        return jsonify({'success': True, 'action': 'removed', 'count': get_wishlist_count()})
+
+    wishlist_item = WishList(user_id=current_user.id, product_id=product_id, quantity=quantity)
+    db.session.add(wishlist_item)
+    db.session.commit()
+
+    return jsonify({'success': True, 'action': 'added', 'count': get_wishlist_count()})
+
+
+@frontend_bp.route('/api/wishlist/count')
+def api_wishlist_count():
+    return jsonify({'count': get_wishlist_count()})
+
 
 @frontend_bp.route('/api/cart/update', methods=['POST'])
 def api_update_cart():
@@ -619,3 +681,14 @@ def get_or_create_cart():
         cart = Cart.get_or_create_cart(session_id=session_id)
     
     return cart
+
+def get_user_wishlist_product_ids():
+    if current_user.is_authenticated:
+        return {item.product_id for item in WishList.query.filter_by(user_id=current_user.id)}
+    return set()
+
+
+def get_wishlist_count():
+    if current_user.is_authenticated:
+        return WishList.query.filter_by(user_id=current_user.id).count()
+    return 0

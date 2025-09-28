@@ -1,4 +1,4 @@
-from flask_login import UserMixin
+﻿from flask_login import UserMixin
 from datetime import datetime
 from werkzeug.security import check_password_hash
 from database import db
@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     # Relationships
     carts = db.relationship('Cart', backref='user', lazy=True)
     orders = db.relationship('Order', backref='user', lazy=True)
+    wishlist_items = db.relationship('WishList', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<User {self.username}>'

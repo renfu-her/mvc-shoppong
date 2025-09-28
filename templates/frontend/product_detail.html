@@ -113,15 +113,39 @@
                     </div>
                     
                     <div class="product-actions mb-4">
-                        <button class="btn btn-primary btn-lg me-3 add-to-cart" data-product-id="{{ product.id }}">
-                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                        </button>
-                        <button class="btn btn-outline-secondary btn-lg me-3">
-                            <i class="fas fa-heart me-2"></i>Wishlist
-                        </button>
-                        <button class="btn btn-outline-info btn-lg">
-                            <i class="fas fa-share me-2"></i>Share
-                        </button>
+                        {% if not current_user.is_authenticated %}
+                        <div class="mb-3">
+                            <a class="btn btn-outline-primary btn-lg" href="{{ url_for('frontend.login', next=request.full_path) }}">
+                                <i class="fas fa-user me-2"></i>Login
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <button class="btn btn-primary btn-lg add-to-cart" data-product-id="{{ product.id }}">
+                                <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                            </button>
+                            <button class="btn btn-success btn-lg" id="buy-now" data-product-id="{{ product.id }}">
+                                <i class="fas fa-bolt me-2"></i>Buy Now
+                            </button>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3">
+                            {% set wishlist_label_in = 'In Wishlist' %}
+                            {% set wishlist_label_out = 'Wishlist' %}
+                            <button class="btn btn-outline-secondary btn-lg wishlist-btn {% if product_in_wishlist %}text-danger{% endif %}"
+                                    data-product-id="{{ product.id }}"
+                                    data-in-wishlist="{{ 'true' if product_in_wishlist else 'false' }}"
+                                    data-label-in="{{ wishlist_label_in }}"
+                                    data-label-out="{{ wishlist_label_out }}"
+                                    data-login-url="{{ url_for('frontend.login', next=request.full_path) }}">
+                                <i class="{% if product_in_wishlist %}fas text-danger{% else %}far{% endif %} fa-heart me-2"></i>
+                                <span class="wishlist-label">{% if product_in_wishlist %}{{ wishlist_label_in }}{% else %}{{ wishlist_label_out }}{% endif %}</span>
+                            </button>
+                            <button class="btn btn-outline-info btn-lg share-btn">
+                                <i class="fas fa-share me-2"></i>Share
+                            </button>
+                        </div>
+                    </div>
+
                     </div>
                     
                     <div class="product-meta">
@@ -353,10 +377,15 @@
                                     <button class="btn btn-sm btn-outline-primary add-to-cart" data-product-id="{{ related_product.id }}">
                                         <i class="fas fa-shopping-cart"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-heart"></i>
+                                    {% set related_in_wishlist = wishlist_product_ids is defined and related_product.id in wishlist_product_ids %}
+                                    <button class="btn btn-sm btn-outline-secondary wishlist-btn {% if related_in_wishlist %}text-danger{% endif %}"
+                                            data-product-id="{{ related_product.id }}"
+                                            data-in-wishlist="{{ 'true' if related_in_wishlist else 'false' }}"
+                                            data-login-url="{{ url_for('frontend.login', next=request.full_path) }}"
+                                            title="{% if related_in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
+                                        <i class="{% if related_in_wishlist %}fas text-danger{% else %}far{% endif %} fa-heart"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-info">
+                                    <button class="btn btn-sm btn-outline-info share-btn">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -389,35 +418,11 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Thumbnail image click
-    $('.thumbnail-image').click(function() {
-        $('.thumbnail-image').removeClass('active');
-        $(this).addClass('active');
-        $('#main-product-image').attr('src', $(this).data('main-src'));
-    });
-    
-    // Quantity controls
-    $('#increase-qty').click(function() {
-        var currentVal = parseInt($('#quantity').val());
-        var maxVal = parseInt($('#quantity').attr('max'));
-        if (currentVal < maxVal) {
-            $('#quantity').val(currentVal + 1);
-        }
-    });
-    
-    $('#decrease-qty').click(function() {
-        var currentVal = parseInt($('#quantity').val());
-        if (currentVal > 1) {
-            $('#quantity').val(currentVal - 1);
-        }
-    });
-    
-    // Add to cart
-    $('.add-to-cart').click(function() {
-        var productId = $(this).data('product-id');
-        var quantity = parseInt($('#quantity').val());
-        var button = $(this);
-        
+    const checkoutUrl = '{{ url_for('frontend.checkout') }}';
+    const loginForCheckoutUrl = '{{ url_for('frontend.login', next=url_for('frontend.checkout')) }}';
+    const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+    function sendAddToCart(productId, quantity, onSuccess, onError) {
         $.ajax({
             url: '/api/cart/add',
             method: 'POST',
@@ -429,16 +434,103 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     $('#cart-count').text(response.cart_count);
-                    button.html('<i class="fas fa-check me-2"></i>Added to Cart');
-                    button.removeClass('btn-primary').addClass('btn-success');
-                    setTimeout(function() {
-                        button.html('<i class="fas fa-shopping-cart me-2"></i>Add to Cart');
-                        button.removeClass('btn-success').addClass('btn-primary');
-                    }, 3000);
+                    if (typeof onSuccess === 'function') {
+                        onSuccess(response);
+                    }
+                } else if (typeof onError === 'function') {
+                    onError(response.message || 'Unable to add to cart.');
+                } else if (response.message) {
+                    alert(response.message);
+                }
+            },
+            error: function() {
+                if (typeof onError === 'function') {
+                    onError('Unable to add to cart. Please try again.');
+                } else {
+                    alert('Unable to add to cart. Please try again.');
                 }
             }
+        });
+    }
+
+    $('.add-to-cart').each(function() {
+        $(this).data('default-html', $(this).html());
+        $(this).data('default-class', $(this).attr('class'));
+    });
+
+    // Thumbnail image click
+    $('.thumbnail-image').on('click', function() {
+        $('.thumbnail-image').removeClass('active');
+        $(this).addClass('active');
+        $('#main-product-image').attr('src', $(this).data('main-src'));
+    });
+
+    // Quantity controls
+    $('#increase-qty').on('click', function() {
+        var currentVal = parseInt($('#quantity').val(), 10);
+        var maxVal = parseInt($('#quantity').attr('max'), 10);
+        if (currentVal < maxVal) {
+            $('#quantity').val(currentVal + 1);
+        }
+    });
+
+    $('#decrease-qty').on('click', function() {
+        var currentVal = parseInt($('#quantity').val(), 10);
+        if (currentVal > 1) {
+            $('#quantity').val(currentVal - 1);
+        }
+    });
+
+    // Add to cart
+    $('.add-to-cart').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var productId = button.data('product-id');
+        var qtyInput = $('#quantity');
+        var quantity = qtyInput.length ? parseInt(qtyInput.val(), 10) || 1 : 1;
+
+        sendAddToCart(productId, quantity, function() {
+            var defaultHtml = button.data('default-html');
+            var defaultClass = button.data('default-class');
+
+            if (button.hasClass('btn-lg')) {
+                button.removeClass('btn-primary').addClass('btn-success').prop('disabled', true)
+                      .html('<i class="fas fa-check me-2"></i>Added to Cart');
+                setTimeout(function() {
+                    button.prop('disabled', false).attr('class', defaultClass).html(defaultHtml);
+                }, 2500);
+            } else {
+                button.removeClass('btn-outline-primary').addClass('btn-success')
+                      .html('<i class="fas fa-check"></i>');
+                setTimeout(function() {
+                    button.attr('class', defaultClass).html(defaultHtml);
+                }, 1500);
+            }
+        });
+    });
+
+    // Buy now
+    $('#buy-now').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var productId = button.data('product-id');
+        var quantity = parseInt($('#quantity').val(), 10) || 1;
+
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing');
+
+        sendAddToCart(productId, quantity, function() {
+            if (isAuthenticated) {
+                window.location.href = checkoutUrl;
+            } else {
+                window.location.href = loginForCheckoutUrl;
+            }
+        }, function(message) {
+            alert(message);
+            button.prop('disabled', false).html('<i class="fas fa-bolt me-2"></i>Buy Now');
         });
     });
 });
 </script>
 {% endblock %}
+
+

@@ -5,8 +5,9 @@ from .cart import Cart, CartItem
 from .ads import Ads
 from .coupon import Coupon
 from .shipping_fee import ShippingFee
+from .wishlist import WishList
 
 __all__ = [
-    'User', 'Category', 'Product', 'ProductImage', 
-    'Cart', 'CartItem', 'Ads', 'Coupon', 'ShippingFee'
+    'User', 'Category', 'Product', 'ProductImage',
+    'Cart', 'CartItem', 'Ads', 'Coupon', 'ShippingFee', 'WishList'
 ]

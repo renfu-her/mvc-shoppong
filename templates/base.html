@@ -87,6 +87,12 @@
                                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cart-count">0</span>
                                 </a>
                             </div>
+                            <div class="wishlist-icon me-3">
+                                <a href="{{ url_for('frontend.wishlist') }}" class="position-relative">
+                                    <i class="fas fa-heart fa-lg"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="wishlist-count">{{ current_user.wishlist_items|length if current_user.is_authenticated else 0 }}</span>
+                                </a>
+                            </div>
                             <div class="user-actions">
                                 {% if current_user.is_authenticated %}
                                     <div class="dropdown">
@@ -102,6 +108,11 @@
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('frontend.profile') }}#orders">
                                                     <i class="fas fa-shopping-bag me-2"></i>Orders
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('frontend.wishlist') }}">
+                                                    <i class="fas fa-heart me-2"></i>Wishlist
                                                 </a>
                                             </li>
                                             <li>
@@ -145,20 +156,46 @@
                             </a>
                             <ul class="dropdown-menu">
                                 {% for category_data in categories %}
+                                {% set child_categories = category_data.children %}
+                                {% if child_categories %}
                                 <li class="dropdown-submenu">
-                                    <a class="dropdown-item dropdown-toggle" href="{{ url_for('frontend.category', slug=category_data.category.slug) }}">
+                                    <a class="dropdown-item dropdown-toggle" href="{{ url_for('frontend.category', slug=category_data.category.slug) }}" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         {{ category_data.category.name }}
                                     </a>
                                     <ul class="dropdown-menu">
-                                        {% for child_data in category_data.children %}
+                                        {% for child_data in child_categories %}
+                                        {% if child_data.children %}
+                                        <li class="dropdown-submenu">
+                                            <a class="dropdown-item dropdown-toggle" href="{{ url_for('frontend.category', slug=child_data.category.slug) }}" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                {{ child_data.category.name }}
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                {% for grandchild in child_data.children %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('frontend.category', slug=grandchild.slug) }}">
+                                                        {{ grandchild.name }}
+                                                    </a>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </li>
+                                        {% else %}
                                         <li>
                                             <a class="dropdown-item" href="{{ url_for('frontend.category', slug=child_data.category.slug) }}">
                                                 {{ child_data.category.name }}
                                             </a>
                                         </li>
+                                        {% endif %}
                                         {% endfor %}
                                     </ul>
                                 </li>
+                                {% else %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('frontend.category', slug=category_data.category.slug) }}">
+                                        {{ category_data.category.name }}
+                                    </a>
+                                </li>
+                                {% endif %}
                                 {% endfor %}
                             </ul>
                         </li>
