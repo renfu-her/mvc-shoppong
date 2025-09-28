@@ -1,8 +1,10 @@
 ﻿from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
 from decimal import Decimal
+from datetime import datetime, timedelta
 from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User, WishList
 from models.order import Order, OrderItem
+from sqlalchemy import func
 from utils.helpers import paginate_query, generate_order_number
 from utils.ecpay import ECPayService, ECPAY_TEST_CONFIG
 from app import db
@@ -101,6 +103,50 @@ def index():
     
     wishlist_product_ids = get_user_wishlist_product_ids()
 
+    deal_candidates = on_sale_products[:3]
+    deal_products = []
+    sales_map = {}
+
+    if deal_candidates:
+        product_ids = [product.id for product in deal_candidates]
+        sales_rows = db.session.query(
+            OrderItem.product_id,
+            func.coalesce(func.sum(OrderItem.quantity), 0).label('units_sold'),
+            func.max(Order.created_at).label('last_order_at')
+        ).join(Order, Order.id == OrderItem.order_id)
+        sales_rows = sales_rows.filter(OrderItem.product_id.in_(product_ids))
+        sales_rows = sales_rows.filter(Order.status.notin_(['cancelled', 'refunded', 'failed']))
+        sales_rows = sales_rows.group_by(OrderItem.product_id).all()
+        sales_map = {row.product_id: {'sold': int(row.units_sold or 0), 'last_sale': row.last_order_at} for row in sales_rows}
+
+    now = datetime.utcnow()
+
+    for product in deal_candidates:
+        info = sales_map.get(product.id, {'sold': 0, 'last_sale': None})
+        available = product.stock_quantity if product.manage_stock else None
+        total_capacity = info['sold'] + (available if available is not None else 0)
+        if available is not None and total_capacity > 0:
+            progress = min(100, round((info['sold'] / total_capacity) * 100))
+        elif info['sold'] > 0:
+            progress = 100
+        else:
+            progress = 0
+
+        reference_time = info['last_sale'] or product.updated_at
+        end_time = None
+        if reference_time:
+            candidate = reference_time + timedelta(hours=24)
+            if candidate > now:
+                end_time = candidate.isoformat()
+
+        deal_products.append({
+            'product': product,
+            'sold': info['sold'],
+            'available': available,
+            'progress': progress,
+            'end_time': end_time
+        })
+
     return render_template('frontend/index.html',
                          featured_products=featured_products,
                          new_arrivals=new_arrivals,
@@ -108,7 +154,8 @@ def index():
                          on_sale_products=on_sale_products,
                          banners=banners,
                          categories=categories,
-                         wishlist_product_ids=wishlist_product_ids)
+                         wishlist_product_ids=wishlist_product_ids,
+                         deal_products=deal_products)
 
 @frontend_bp.route('/shop')
 def shop():

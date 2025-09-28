@@ -67,7 +67,38 @@
             </div>
         </div>
     </div>
-    
+
+    <div class="row commerce-insights mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                    <h5 class="mb-0">Commerce Insights</h5>
+                    <small class="text-muted">Last 14 days · {{ analysis_range_label }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">Order Momentum</h6>
+                </div>
+                <div class="card-body">
+                    <div id="order-trend-chart" style="height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">Top Products by Units</h6>
+                </div>
+                <div class="card-body">
+                    <div id="product-performance-chart" style="height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Recent Orders -->
         <div class="col-lg-8 mb-4">
@@ -161,4 +192,106 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+(function() {
+    const readyHandler = function() {
+        const orderData = {{ order_chart_data|tojson }};
+        const productData = {{ product_chart_data|tojson }};
+
+        if (typeof echarts === 'undefined') {
+            return;
+        }
+
+        const chartsToResize = [];
+
+        const orderEl = document.getElementById('order-trend-chart');
+        if (orderEl && orderData.length) {
+            const orderChart = echarts.init(orderEl);
+            chartsToResize.push(orderChart);
+            const orderDates = orderData.map(item => item.date);
+            const orderCounts = orderData.map(item => item.orders);
+            const orderRevenue = orderData.map(item => Number(item.revenue || 0));
+
+            orderChart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        const [ordersPoint, revenuePoint] = params;
+                        const revenueValue = revenuePoint ? revenuePoint.data : 0;
+                        return `${ordersPoint.axisValue}<br/>Orders: ${ordersPoint.data}<br/>Revenue: $${Number(revenueValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
+                },
+                legend: { data: ['Orders', 'Revenue'] },
+                grid: { left: '4%', right: '4%', bottom: '6%', top: '12%', containLabel: true },
+                xAxis: { type: 'category', data: orderDates, boundaryGap: true },
+                yAxis: [
+                    { type: 'value', name: 'Orders', minInterval: 1 },
+                    { type: 'value', name: 'Revenue', position: 'right', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
+                ],
+                series: [
+                    { name: 'Orders', type: 'bar', data: orderCounts, barMaxWidth: 26, itemStyle: { color: '#0d6efd' } },
+                    { name: 'Revenue', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 8, data: orderRevenue, itemStyle: { color: '#20c997' } }
+                ]
+            });
+        } else if (orderEl) {
+            orderEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
+            orderEl.innerHTML = 'No order activity in the selected window.';
+        }
+
+        const productEl = document.getElementById('product-performance-chart');
+        if (productEl && productData.length) {
+            const productChart = echarts.init(productEl);
+            chartsToResize.push(productChart);
+            const productNames = productData.map(item => item.name);
+            const productUnits = productData.map(item => item.units);
+            const productRevenue = productData.map(item => Number(item.revenue || 0));
+
+            productChart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        const unitsPoint = params.find(p => p.seriesName === 'Units Sold');
+                        const revenuePoint = params.find(p => p.seriesName === 'Revenue');
+                        const units = unitsPoint ? unitsPoint.data : 0;
+                        const revenue = revenuePoint ? revenuePoint.data : 0;
+                        return `${params[0].axisValue}<br/>Units Sold: ${units}<br/>Revenue: $${Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
+                },
+                legend: { data: ['Units Sold', 'Revenue'] },
+                grid: { left: '22%', right: '12%', bottom: '6%', top: '12%', containLabel: true },
+                xAxis: [
+                    { type: 'value', name: 'Units', minInterval: 1 },
+                    { type: 'value', name: 'Revenue', position: 'top', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
+                ],
+                yAxis: { type: 'category', data: productNames, inverse: true, axisTick: { alignWithLabel: true } },
+                series: [
+                    { name: 'Units Sold', type: 'bar', xAxisIndex: 0, data: productUnits, barMaxWidth: 18, itemStyle: { color: '#6610f2' } },
+                    { name: 'Revenue', type: 'line', xAxisIndex: 1, data: productRevenue, smooth: true, symbolSize: 8, itemStyle: { color: '#fd7e14' } }
+                ]
+            });
+        } else if (productEl) {
+            productEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
+            productEl.innerHTML = 'No product sales recorded yet.';
+        }
+
+        if (chartsToResize.length) {
+            window.addEventListener('resize', () => chartsToResize.forEach(chart => chart.resize()));
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', readyHandler);
+    } else {
+        readyHandler();
+    }
+})();
+</script>
 {% endblock %}

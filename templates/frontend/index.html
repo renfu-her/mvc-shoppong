@@ -375,54 +375,48 @@
             <h2>Deal Of The Day</h2>
         </div>
         <div class="row">
-            {% for product in on_sale_products[:3] %}
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="deal-card">
-                    <div class="deal-image">
-                        {% set primary_image = product.get_primary_image() %}
-                        {% if primary_image %}
-                        <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid">
-                        {% endif %}
-                        <div class="deal-timer">
-                            <div class="countdown" data-end-time="2024-12-31 23:59:59">
-                                <div class="time-unit">
-                                    <span class="time-value">00</span>
-                                    <span class="time-label">Days</span>
-                                </div>
-                                <div class="time-unit">
-                                    <span class="time-value">00</span>
-                                    <span class="time-label">Hours</span>
-                                </div>
-                                <div class="time-unit">
-                                    <span class="time-value">00</span>
-                                    <span class="time-label">Minutes</span>
-                                </div>
-                                <div class="time-unit">
-                                    <span class="time-value">00</span>
-                                    <span class="time-label">Seconds</span>
-                                </div>
+            {% if deal_products %}
+                {% for deal in deal_products %}
+                {% set product = deal.product %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="deal-card">
+                        <div class="deal-image">
+                            {% set primary_image = product.get_primary_image() %}
+                            {% if primary_image %}
+                            <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid">
+                            {% endif %}
+                            {% if deal.end_time %}
+                            <div class="deal-timer">
+                                <div class="countdown" data-end-time="{{ deal.end_time }}"></div>
                             </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    <div class="deal-info">
-                        <h5>{{ product.name }}</h5>
-                        <div class="deal-price">
-                            <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
-                            <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
-                        </div>
-                        <div class="deal-progress">
-                            <div class="progress">
-                                <div class="progress-bar" style="width: {{ product.discount_percentage }}%"></div>
+                        <div class="deal-info">
+                            <h5>{{ product.name }}</h5>
+                            <div class="deal-price">
+                                <span class="current-price">${{ "%.2f"|format(product.current_price) }}</span>
+                                <span class="old-price">${{ "%.2f"|format(product.regular_price) }}</span>
                             </div>
-                            <div class="deal-stats">
-                                <span>Already Sold: <strong>6</strong></span>
-                                <span>Available: <strong>8</strong></span>
+                            <div class="deal-progress">
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ deal.progress }}%;" aria-valuenow="{{ deal.progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="deal-stats">
+                                    <span>Already Sold: <strong>{{ deal.sold }}</strong></span>
+                                    <span>Available: <strong>{% if deal.available is not none %}{{ deal.available }}{% else %}Unlimited{% endif %}</strong></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center mb-0">
+                        More deals coming soon &mdash; keep an eye on this space!
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </section>
@@ -501,25 +495,48 @@ $(document).ready(function() {
         });
     });
     
-    // Countdown timer
+    // Countdown timer with graceful expiry handling
     $('.countdown').each(function() {
-        var endTime = new Date($(this).data('end-time')).getTime();
         var timer = $(this);
-        
+        var wrapper = timer.closest('.deal-timer');
+        var rawEndValue = timer.data('end-time');
+
+        if (!rawEndValue) {
+            if (wrapper.length) {
+                wrapper.addClass('d-none');
+            }
+            return;
+        }
+
+        var endTimestamp = new Date(rawEndValue).getTime();
+        if (isNaN(endTimestamp)) {
+            if (wrapper.length) {
+                wrapper.addClass('d-none');
+            }
+            return;
+        }
+
+        var intervalId;
+
         function updateCountdown() {
-            var now = new Date().getTime();
-            var distance = endTime - now;
-            
-            if (distance < 0) {
-                timer.html('<div class="time-unit"><span class="time-value">00</span><span class="time-label">Expired</span></div>');
+            var now = Date.now();
+            var distance = endTimestamp - now;
+
+            if (distance <= 0) {
+                clearInterval(intervalId);
+                if (wrapper.length) {
+                    wrapper.addClass('d-none');
+                } else {
+                    timer.empty();
+                }
                 return;
             }
-            
+
             var days = Math.floor(distance / (1000 * 60 * 60 * 24));
             var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
+
             timer.html(
                 '<div class="time-unit"><span class="time-value">' + String(days).padStart(2, '0') + '</span><span class="time-label">Days</span></div>' +
                 '<div class="time-unit"><span class="time-value">' + String(hours).padStart(2, '0') + '</span><span class="time-label">Hours</span></div>' +
@@ -527,9 +544,9 @@ $(document).ready(function() {
                 '<div class="time-unit"><span class="time-value">' + String(seconds).padStart(2, '0') + '</span><span class="time-label">Seconds</span></div>'
             );
         }
-        
+
         updateCountdown();
-        setInterval(updateCountdown, 1000);
+        intervalId = setInterval(updateCountdown, 1000);
     });
 });
 </script>
