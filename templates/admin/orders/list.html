@@ -1,0 +1,126 @@
+﻿{% extends "admin/base.html" %}
+
+{% block page_title %}Orders{% endblock %}
+
+{% block content %}
+<div class="orders-list">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4>Orders</h4>
+            <p class="text-muted">Track and manage customer orders</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        {% for value, label in [('pending','Pending'),('processing','Processing'),('shipped','Shipped'),('delivered','Delivered'),('cancelled','Cancelled'),('refunded','Refunded')] %}
+                        <option value="{{ value }}" {% if request.args.get('status') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+                </div>
+                {% if request.args.get('status') %}
+                <div class="col-md-2">
+                    <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary w-100">Reset</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if orders.items %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Total</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ order.order_number }}</strong><br>
+                                <small class="text-muted">ID #{{ order.id }}</small>
+                            </td>
+                            <td>
+                                {{ order.customer_name }}<br>
+                                <small class="text-muted">{{ order.customer_email }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ order.get_status_display() }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' if order.payment_status == 'pending' else 'secondary' }}">
+                                    {{ order.get_payment_status_display() }}
+                                </span>
+                            </td>
+                            <td>${{ '%.2f'|format(order.total_amount) }}</td>
+                            <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '—' }}</td>
+                            <td class="text-end">
+                                <a href="{{ url_for('admin.order_detail', id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if orders.pages > 1 %}
+            <nav aria-label="Orders pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if orders.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.orders', page=orders.prev_num, status=request.args.get('status')) }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in orders.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num == orders.page %}
+                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('admin.orders', page=page_num, status=request.args.get('status')) }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.orders', page=orders.next_num, status=request.args.get('status')) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <h5>No orders found</h5>
+                <p class="text-muted">Orders will appear here as customers complete checkout.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

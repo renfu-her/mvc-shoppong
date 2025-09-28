@@ -54,7 +54,7 @@ class ECPayService:
             'TradeDesc': order_data['trade_desc'],
             'ItemName': order_data['item_name'],
             'ReturnURL': order_data['return_url'],
-            'ChoosePayment': 'ALL',  # 全方位金流
+            'ChoosePayment': 'Credit',  # Credit card only
             'OrderResultURL': order_data.get('order_result_url', ''),
             'ClientBackURL': order_data.get('client_back_url', ''),
             'NeedExtraPaidInfo': 'Y',

@@ -1,0 +1,70 @@
+﻿{% extends "admin/base.html" %}
+
+{% block page_title %}Shipping Methods{% endblock %}
+
+{% block content %}
+<div class="shipping-list">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4>Shipping Fees</h4>
+            <p class="text-muted">Configure delivery options and pricing</p>
+        </div>
+        <a href="{{ url_for('admin.create_shipping_fee') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Shipping Method
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if shipping_fees %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Cost</th>
+                            <th>Free Shipping Threshold</th>
+                            <th>Sort</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fee in shipping_fees %}
+                        <tr>
+                            <td>{{ fee.name }}</td>
+                            <td>{{ fee.method_type }}</td>
+                            <td>${{ '%.2f'|format(fee.cost) }}</td>
+                            <td>
+                                {% if fee.free_shipping_threshold %}
+                                ${{ '%.2f'|format(fee.free_shipping_threshold) }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>{{ fee.sort_order }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if fee.is_active else 'secondary' }}">
+                                    {{ 'Active' if fee.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shipping-fast fa-3x text-muted mb-3"></i>
+                <h5>No shipping methods configured</h5>
+                <p class="text-muted">Add at least one shipping option so customers can complete checkout.</p>
+                <a href="{{ url_for('admin.create_shipping_fee') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add Shipping Method
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

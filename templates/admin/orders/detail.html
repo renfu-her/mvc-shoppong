@@ -1,0 +1,172 @@
+﻿{% extends "admin/base.html" %}
+
+{% block page_title %}Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="order-detail">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4>Order {{ order.order_number }}</h4>
+            <p class="text-muted">Placed on {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'Unknown date' }}</p>
+        </div>
+        <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Orders
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Items</h5>
+                    <span class="badge bg-secondary">{{ order.items|length }} items</span>
+                </div>
+                <div class="card-body">
+                    {% if order.items %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>SKU</th>
+                                    <th class="text-end">Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.product_name }}</strong>
+                                    </td>
+                                    <td>{{ item.product_sku }}</td>
+                                    <td class="text-end">{{ item.quantity }}</td>
+                                    <td class="text-end">${{ '%.2f'|format(item.unit_price) }}</td>
+                                    <td class="text-end">${{ '%.2f'|format(item.total_price) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No order items recorded.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Customer Notes</h6>
+                            <p class="text-muted">{{ order.customer_notes or 'None' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Admin Notes</h6>
+                            <p class="text-muted">{{ order.admin_notes or 'None' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Status</h5>
+                    <span class="badge bg-secondary">{{ order.get_status_display() }}</span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.update_order_status', id=order.id) }}">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Update Status</label>
+                            <select class="form-select" id="status" name="status">
+                                {% for value, label in [('pending','Pending'),('processing','Processing'),('shipped','Shipped'),('delivered','Delivered'),('cancelled','Cancelled'),('refunded','Refunded')] %}
+                                <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save Status</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Totals</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6 text-muted">Subtotal</dt>
+                        <dd class="col-6 text-end">${{ '%.2f'|format(order.subtotal) }}</dd>
+                        <dt class="col-6 text-muted">Shipping</dt>
+                        <dd class="col-6 text-end">${{ '%.2f'|format(order.shipping_fee) }}</dd>
+                        <dt class="col-6 text-muted">Tax</dt>
+                        <dd class="col-6 text-end">${{ '%.2f'|format(order.tax_amount) }}</dd>
+                        <dt class="col-6 text-muted">Discount</dt>
+                        <dd class="col-6 text-end">-${{ '%.2f'|format(order.discount_amount) }}</dd>
+                        <dt class="col-6 fw-semibold">Grand Total</dt>
+                        <dd class="col-6 fw-semibold text-end">${{ '%.2f'|format(order.total_amount) }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Customer</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ order.customer_name }}</strong></p>
+                    <p class="text-muted mb-2">{{ order.customer_email }}<br>{{ order.customer_phone or 'No phone' }}</p>
+                    <h6>Billing Address</h6>
+                    <p class="text-muted">
+                        {{ order.billing_first_name }} {{ order.billing_last_name }}<br>
+                        {{ order.billing_address_1 }}{% if order.billing_address_2 %}, {{ order.billing_address_2 }}{% endif %}<br>
+                        {{ order.billing_city }}, {{ order.billing_state }} {{ order.billing_postcode }}<br>
+                        {{ order.billing_country }}
+                    </p>
+                    <h6 class="mt-3">Shipping Address</h6>
+                    {% if order.shipping_address_1 %}
+                    <p class="text-muted">
+                        {{ order.shipping_name }}<br>
+                        {{ order.shipping_address_1 }}{% if order.shipping_address_2 %}, {{ order.shipping_address_2 }}{% endif %}<br>
+                        {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postcode }}<br>
+                        {{ order.shipping_country or order.billing_country }}
+                    </p>
+                    {% else %}
+                    <p class="text-muted">Same as billing address.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payment</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6 text-muted">Method</dt>
+                        <dd class="col-6 text-end">{{ order.payment_method or 'N/A' }}</dd>
+                        <dt class="col-6 text-muted">Status</dt>
+                        <dd class="col-6 text-end">
+                            <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' if order.payment_status == 'pending' else 'secondary' }}">{{ order.get_payment_status_display() }}</span>
+                        </dd>
+                        {% if order.transaction_id %}
+                        <dt class="col-6 text-muted">Transaction ID</dt>
+                        <dd class="col-6 text-end">{{ order.transaction_id }}</dd>
+                        {% endif %}
+                        {% if order.ecpay_trade_no %}
+                        <dt class="col-6 text-muted">ECPay Trade #</dt>
+                        <dd class="col-6 text-end">{{ order.ecpay_trade_no }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

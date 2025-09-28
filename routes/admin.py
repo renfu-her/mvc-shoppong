@@ -8,7 +8,7 @@ from utils.image_utils import process_product_image, process_ad_image, delete_im
 from app import db
 import json
 
-admin_bp = Blueprint('backend', __name__)
+admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -20,7 +20,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.is_admin:
             login_user(user)
-            return redirect(url_for('backend.dashboard'))
+            return redirect(url_for('admin.dashboard'))
         else:
             flash('Invalid credentials', 'error')
     
@@ -31,7 +31,7 @@ def login():
 def logout():
     """Admin logout"""
     logout_user()
-    return redirect(url_for('backend.login'))
+    return redirect(url_for('admin.login'))
 
 def admin_required(f):
     """Decorator to require admin access"""
@@ -40,7 +40,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
             flash('Admin access required', 'error')
-            return redirect(url_for('backend.login'))
+            return redirect(url_for('admin.login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -140,7 +140,7 @@ def create_product():
             
             db.session.commit()
             flash('Product created successfully', 'success')
-            return redirect(url_for('backend.products'))
+            return redirect(url_for('admin.products'))
             
         except Exception as e:
             db.session.rollback()
@@ -188,7 +188,7 @@ def edit_product(id):
             
             db.session.commit()
             flash('Product updated successfully', 'success')
-            return redirect(url_for('backend.products'))
+            return redirect(url_for('admin.products'))
             
         except Exception as e:
             db.session.rollback()
@@ -215,7 +215,7 @@ def delete_product(id):
         db.session.rollback()
         flash(f'Error deleting product: {str(e)}', 'error')
     
-    return redirect(url_for('backend.products'))
+    return redirect(url_for('admin.products'))
 
 # Category Management
 @admin_bp.route('/categories')
@@ -244,7 +244,7 @@ def create_category():
             db.session.add(category)
             db.session.commit()
             flash('Category created successfully', 'success')
-            return redirect(url_for('backend.categories'))
+            return redirect(url_for('admin.categories'))
             
         except Exception as e:
             db.session.rollback()
@@ -289,7 +289,7 @@ def update_order_status(id):
     else:
         flash('Invalid status', 'error')
     
-    return redirect(url_for('backend.order_detail', id=id))
+    return redirect(url_for('admin.order_detail', id=id))
 
 # Advertisement Management
 @admin_bp.route('/ads')
@@ -334,7 +334,7 @@ def create_ad():
             
             db.session.commit()
             flash('Advertisement created successfully', 'success')
-            return redirect(url_for('backend.ads'))
+            return redirect(url_for('admin.ads'))
             
         except Exception as e:
             db.session.rollback()
@@ -372,7 +372,7 @@ def create_coupon():
             db.session.add(coupon)
             db.session.commit()
             flash('Coupon created successfully', 'success')
-            return redirect(url_for('backend.coupons'))
+            return redirect(url_for('admin.coupons'))
             
         except Exception as e:
             db.session.rollback()
@@ -407,10 +407,11 @@ def create_shipping_fee():
             db.session.add(shipping_fee)
             db.session.commit()
             flash('Shipping fee created successfully', 'success')
-            return redirect(url_for('backend.shipping_fees'))
+            return redirect(url_for('admin.shipping_fees'))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error creating shipping fee: {str(e)}', 'error')
     
     return render_template('admin/shipping/create.html')
+

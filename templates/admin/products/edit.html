@@ -1,0 +1,239 @@
+﻿{% extends "admin/base.html" %}
+
+{% block page_title %}Edit Product{% endblock %}
+
+{% block content %}
+<div class="product-form">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4>Edit Product</h4>
+            <p class="text-muted">Update product information and assets</p>
+        </div>
+        <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Products
+        </a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Basic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ product.name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sku" class="form-label">SKU *</label>
+                                <input type="text" class="form-control" id="sku" name="sku" value="{{ product.sku }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">Category *</label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="draft" {% if product.status == 'draft' %}selected{% endif %}>Draft</option>
+                                    <option value="published" {% if product.status == 'published' %}selected{% endif %}>Published</option>
+                                    <option value="archived" {% if product.status == 'archived' %}selected{% endif %}>Archived</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="short_description" class="form-label">Short Description</label>
+                                <textarea class="form-control" id="short_description" name="short_description" rows="3">{{ product.short_description or '' }}</textarea>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="5">{{ product.description or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Pricing</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="regular_price" class="form-label">Regular Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="regular_price" name="regular_price" step="0.01" min="0" value="{{ '%.2f'|format(product.regular_price or 0) }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sale_price" class="form-label">Sale Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="sale_price" name="sale_price" step="0.01" min="0" value="{{ '%.2f'|format(product.sale_price) if product.sale_price is not none else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Inventory</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_quantity" class="form-label">Stock Quantity</label>
+                                <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" min="0" value="{{ product.stock_quantity }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Stock Management</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="manage_stock" name="manage_stock" {% if product.manage_stock %}checked{% endif %}>
+                                    <label class="form-check-label" for="manage_stock">Track stock quantity</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Product Attributes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="weight" class="form-label">Weight (kg)</label>
+                                <input type="number" class="form-control" id="weight" name="weight" step="0.01" min="0" value="{{ product.weight or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="dimensions" class="form-label">Dimensions</label>
+                                <input type="text" class="form-control" id="dimensions" name="dimensions" value="{{ product.dimensions or '' }}" placeholder="LxWxH">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="color" class="form-label">Color</label>
+                                <input type="text" class="form-control" id="color" name="color" value="{{ product.color or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="size" class="form-label">Size</label>
+                                <input type="text" class="form-control" id="size" name="size" value="{{ product.size or '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="material" class="form-label">Material</label>
+                                <input type="text" class="form-control" id="material" name="material" value="{{ product.material or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Images</h5>
+                        <small class="text-muted">Upload to add more images</small>
+                    </div>
+                    <div class="card-body">
+                        {% if product.images %}
+                        <div class="row mb-4" id="existing-images">
+                            {% for image in product.images %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <img src="{{ url_for('static', filename=image.image_path) }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ product.name }}">
+                                    <div class="card-body py-2">
+                                        {% if image.is_primary %}
+                                        <span class="badge bg-primary">Primary</span>
+                                        {% else %}
+                                        <span class="badge bg-light text-muted">Gallery</span>
+                                        {% endif %}
+                                        <span class="badge bg-secondary">Sort {{ image.sort_order }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label for="images" class="form-label">Add Images</label>
+                            <input class="form-control" type="file" id="images" name="images" accept="image/*" multiple>
+                        </div>
+                        <div class="row" id="image-preview"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Visibility</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="featured" name="featured" {% if product.featured %}checked{% endif %}>
+                            <label class="form-check-label" for="featured">Featured Product</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if product.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Update Product</button>
+                            <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Meta Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="meta_title" class="form-label">Meta Title</label>
+                            <input type="text" class="form-control" id="meta_title" name="meta_title" value="{{ product.meta_title or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="meta_description" class="form-label">Meta Description</label>
+                            <textarea class="form-control" id="meta_description" name="meta_description" rows="3">{{ product.meta_description or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#images').on('change', function() {
+        var files = this.files;
+        var preview = $('#image-preview');
+        preview.empty();
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file.type.startsWith('image/')) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var col = $('<div class="col-md-6 mb-3"></div>');
+                    var card = $('<div class="card"></div>');
+                    var img = $('<img class="card-img-top" style="height: 150px; object-fit: cover;">');
+                    img.attr('src', e.target.result);
+                    card.append(img);
+                    col.append(card);
+                    preview.append(col);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

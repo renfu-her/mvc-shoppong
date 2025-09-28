@@ -127,8 +127,8 @@
                                                 </div>
                                             </td>
                                             <td>{{ item.quantity }}</td>
-                                            <td>${{ "%.2f"|format(item.price) }}</td>
-                                            <td class="fw-bold">${{ "%.2f"|format(item.price * item.quantity) }}</td>
+                                            <td>${{ "%.2f"|format(item.unit_price) }}</td>
+                                            <td class="fw-bold">${{ "%.2f"|format(item.total_price) }}</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>

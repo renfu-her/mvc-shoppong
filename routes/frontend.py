@@ -309,17 +309,19 @@ def process_checkout():
         )
         db.session.add(order_item)
 
-    db.session.commit()
-
     # Initialize ECPay service
     ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
+    merchant_trade_no = ecpay_service.generate_merchant_trade_no(order.id)
+    order.transaction_id = merchant_trade_no
+
+    db.session.commit()
 
     # Prepare order data for ECPay
     item_names = [f"{item.product.name} x {item.quantity}" for item in cart_items if item.product]
     item_name_str = '#'.join(item_names)
 
     order_data = {
-        'merchant_trade_no': ecpay_service.generate_merchant_trade_no(order.id),
+        'merchant_trade_no': merchant_trade_no,
         'merchant_trade_date': ecpay_service.format_trade_date(),
         'total_amount': int(order.total_amount),
         'trade_desc': f"Order #{order.order_number}",
@@ -350,48 +352,87 @@ def process_checkout():
 @frontend_bp.route('/ecpay/return', methods=['POST'])
 def ecpay_return():
     """ECPay payment result notification (server-to-server)"""
-    from utils.ecpay import ECPayService, ECPAY_TEST_CONFIG
-    
     ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
-    
-    # Verify check mac value
-    if not ecpay_service.verify_check_mac_value(request.form.to_dict()):
+    form_data = request.form.to_dict()
+
+    if not ecpay_service.verify_check_mac_value(form_data.copy()):
         return '0|CheckMacValue verification failed'
-    
-    # Get order data
-    merchant_trade_no = request.form.get('MerchantTradeNo')
-    rtn_code = request.form.get('RtnCode')
-    rtn_msg = request.form.get('RtnMsg')
-    trade_no = request.form.get('TradeNo')
-    trade_amt = request.form.get('TradeAmt')
-    payment_date = request.form.get('PaymentDate')
-    payment_type = request.form.get('PaymentType')
-    custom_field1 = request.form.get('CustomField1')
-    
-    if rtn_code == '1':  # Payment successful
-        # Update order status
+
+    merchant_trade_no = form_data.get('MerchantTradeNo')
+    rtn_code = form_data.get('RtnCode')
+    trade_no = form_data.get('TradeNo')
+    payment_type = form_data.get('PaymentType')
+    custom_field1 = form_data.get('CustomField1')
+
+    order = None
+    if custom_field1 and custom_field1.isdigit():
         order = Order.query.get(int(custom_field1))
-        if order:
-            order.payment_status = 'paid'
-            order.payment_date = payment_date
+    if not order and merchant_trade_no:
+        order = Order.query.filter_by(transaction_id=merchant_trade_no).first()
+
+    if not order:
+        return '0|OrderNotFound'
+
+    if rtn_code == '1':
+        order.payment_status = 'paid'
+        order.status = 'processing'
+        if trade_no:
             order.ecpay_trade_no = trade_no
-            order.status = 'processing'
-            db.session.commit()
-    
-    # Return success response to ECPay
+        if merchant_trade_no:
+            order.transaction_id = merchant_trade_no
+    else:
+        order.payment_status = 'failed'
+        if order.status == 'processing':
+            order.status = 'pending'
+
+    if payment_type:
+        order.payment_method = payment_type
+
+    db.session.commit()
     return '1|OK'
 
-@frontend_bp.route('/order/result/<int:order_id>')
-@login_required
+
+@frontend_bp.route('/order/result/<int:order_id>', methods=['GET', 'POST'])
 def order_result(order_id):
-    """Order result page after payment"""
+    """Order result page after payment or gateway callback"""
     order = Order.query.get_or_404(order_id)
+
+    if request.method == 'POST':
+        form_data = request.form.to_dict()
+        ecpay_service = ECPayService(**ECPAY_TEST_CONFIG)
+        if ecpay_service.verify_check_mac_value(form_data.copy()):
+            merchant_trade_no = form_data.get('MerchantTradeNo')
+            rtn_code = form_data.get('RtnCode')
+            trade_no = form_data.get('TradeNo')
+            payment_type = form_data.get('PaymentType')
+
+            if merchant_trade_no:
+                order.transaction_id = merchant_trade_no
+            if payment_type:
+                order.payment_method = payment_type
+
+            if rtn_code == '1':
+                order.payment_status = 'paid'
+                order.status = 'processing'
+                if trade_no:
+                    order.ecpay_trade_no = trade_no
+            else:
+                order.payment_status = 'failed'
+                if order.status == 'processing':
+                    order.status = 'pending'
+
+            db.session.commit()
+        return redirect(url_for('frontend.order_result', order_id=order.id))
+
+    if not current_user.is_authenticated:
+        return redirect(url_for('frontend.login', next=request.path))
 
     if order.user_id != current_user.id:
         flash('Access denied', 'error')
         return redirect(url_for('frontend.index'))
 
     return render_template('frontend/order_result.html', order=order)
+
 
 @frontend_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
