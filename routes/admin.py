@@ -8,7 +8,8 @@ from utils.image_utils import process_product_image, process_ad_image, delete_im
 from app import db
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import func
 from tasks.order_status import sync_pending_orders
 
 admin_bp = Blueprint('admin', __name__)

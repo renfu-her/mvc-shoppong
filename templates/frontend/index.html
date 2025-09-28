@@ -451,6 +451,23 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // Initialize hero carousel when multiple banners are available
+    var heroCarouselEl = document.getElementById('heroCarousel');
+    if (heroCarouselEl) {
+        var slideCount = heroCarouselEl.querySelectorAll('.carousel-item').length;
+        if (slideCount > 1) {
+            bootstrap.Carousel.getOrCreateInstance(heroCarouselEl, {
+                interval: 6000,
+                pause: 'hover',
+                ride: 'carousel',
+                wrap: true,
+                touch: true
+            });
+        } else if (slideCount === 1) {
+            heroCarouselEl.classList.add('single-slide');
+        }
+    }
+
     // Add to cart functionality
     $('.add-to-cart').click(function() {
         var productId = $(this).data('product-id');
