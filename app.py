@@ -26,7 +26,7 @@ def create_app():
         return User.query.get(int(user_id))
     
     # Import models to register them with SQLAlchemy
-    from models import User, Category, Product, ProductImage, Cart, CartItem, Ads, Coupon, ShippingFee
+    from models import User, Category, Product, ProductImage, Cart, CartItem, Ads, Coupon, ShippingFee, WishList
     from models.order import Order, OrderItem
     
     # Create upload directories
@@ -41,8 +41,24 @@ def create_app():
     app.register_blueprint(frontend_bp)
     app.register_blueprint(admin_bp, url_prefix='/backend')
     app.register_blueprint(api_bp, url_prefix='/api')
+
+    register_cli_commands(app)
     
     return app
+
+
+def register_cli_commands(app):
+    from flask.cli import with_appcontext
+    import click
+    from tasks.order_status import sync_pending_orders
+
+    @app.cli.command('sync-pending-orders')
+    @click.option('--limit', default=50, show_default=True, help='Maximum pending orders to query per run')
+    @with_appcontext
+    def sync_pending_orders_command(limit):
+        updated = sync_pending_orders(limit=limit)
+        click.echo(f'Synced {updated} pending orders.')
+
 
 if __name__ == '__main__':
     app = create_app()

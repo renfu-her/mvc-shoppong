@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}My Wishlist - MVC Shopping{% endblock %}
+
+{% block content %}
+<section class="wishlist-section py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">My Wishlist</h1>
+                <p class="text-muted mb-0">Items you love and may want to purchase later.</p>
+            </div>
+            <a class="btn btn-outline-secondary" href="{{ url_for('frontend.shop') }}">
+                <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+            </a>
+        </div>
+
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table align-middle wishlist-table">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Product</th>
+                        <th scope="col" class="text-center">Price</th>
+                        <th scope="col" class="text-center">Quantity</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% set product = item.product %}
+                    <tr data-wishlist-row>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="wishlist-thumb me-3">
+                                    {% if product and product.get_primary_image() %}
+                                    <img src="{{ url_for('static', filename=product.get_primary_image().image_path) }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="placeholder d-flex align-items-center justify-content-center bg-light border rounded" style="width: 80px; height: 80px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if product %}
+                                    <h6 class="mb-1"><a href="{{ url_for('frontend.product_detail', slug=product.slug) }}" class="text-decoration-none">{{ product.name }}</a></h6>
+                                    <p class="mb-0 text-muted small">SKU: {{ product.sku }}</p>
+                                    {% else %}
+                                    <h6 class="mb-1 text-muted">Product unavailable</h6>
+                                    {% endif %}
+                                    <small class="text-muted">Added on {{ item.created_at.strftime('%Y-%m-%d') if item.created_at else '' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if product %}
+                            <span class="fw-semibold text-primary">${{ "%.2f"|format(product.current_price) }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                {% if product %}
+                                <button class="btn btn-primary btn-sm wishlist-add-to-cart" data-product-id="{{ product.id }}">
+                                    <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-outline-danger btn-sm wishlist-remove-btn" data-product-id="{{ item.product_id }}" data-login-url="{{ url_for('frontend.login', next=request.full_path) }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                <h5 class="mb-2">Your wishlist is empty</h5>
+                <p class="text-muted">Browse our catalog and tap the heart icon on products you love.</p>
+                <a class="btn btn-primary" href="{{ url_for('frontend.shop') }}">
+                    <i class="fas fa-shopping-bag me-2"></i>Shop Now
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('.wishlist-remove-btn').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var productId = button.data('product-id');
+        var loginUrl = button.data('login-url');
+        var row = button.closest('[data-wishlist-row]');
+
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: '/api/wishlist/toggle',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ product_id: productId }),
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Removed from wishlist', 'info');
+                    if (response.count !== undefined) {
+                        $('#wishlist-count').text(response.count);
+                    }
+                    row.remove();
+                    if ($('[data-wishlist-row]').length === 0) {
+                        window.location.reload();
+                    }
+                } else if (response.requires_login) {
+                    window.location.href = loginUrl;
+                } else {
+                    showNotification(response.message || 'Unable to remove item', 'error');
+                    button.prop('disabled', false).html('<i class="fas fa-times"></i>');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 401) {
+                    window.location.href = loginUrl;
+                } else {
+                    showNotification('Unable to remove item. Please try again.', 'error');
+                    button.prop('disabled', false).html('<i class="fas fa-times"></i>');
+                }
+            }
+        });
+    });
+
+    $('.wishlist-add-to-cart').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var productId = button.data('product-id');
+        var originalHtml = button.html();
+
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Adding');
+
+        $.ajax({
+            url: '/api/cart/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ product_id: productId, quantity: 1 }),
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Item moved to cart', 'success');
+                    updateCartCount();
+                    button.html('<i class="fas fa-check me-2"></i>Added');
+                    setTimeout(function() {
+                        button.html(originalHtml).prop('disabled', false);
+                    }, 2000);
+                } else {
+                    showNotification(response.message || 'Unable to add to cart', 'error');
+                    button.html(originalHtml).prop('disabled', false);
+                }
+            },
+            error: function() {
+                showNotification('Unable to add to cart. Please try again.', 'error');
+                button.html(originalHtml).prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

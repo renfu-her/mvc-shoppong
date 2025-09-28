@@ -238,13 +238,31 @@ def process_checkout():
         return redirect(url_for('frontend.cart'))
 
     # Get form data
-    first_name = request.form.get('first_name')
-    last_name = request.form.get('last_name')
-    email = request.form.get('email')
-    phone = request.form.get('phone')
-    address = request.form.get('address')
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    email = request.form.get('email', '').strip()
+    phone = request.form.get('phone', '').strip()
+    address = request.form.get('address', '').strip()
     shipping_method_id = request.form.get('shipping_method')
     notes = request.form.get('notes', '')
+
+    # Persist updated contact details on the user profile so subsequent checkouts are pre-filled
+    if current_user.is_authenticated:
+        dirty = False
+        if current_user.first_name != first_name:
+            current_user.first_name = first_name
+            dirty = True
+        if current_user.last_name != last_name:
+            current_user.last_name = last_name
+            dirty = True
+        if current_user.phone != phone:
+            current_user.phone = phone
+            dirty = True
+        if current_user.address != address:
+            current_user.address = address
+            dirty = True
+        if dirty:
+            db.session.add(current_user)
 
     # Validation
     if not all([first_name, last_name, email, phone, address, shipping_method_id]):
@@ -423,6 +441,9 @@ def order_result(order_id):
             rtn_code = form_data.get('RtnCode')
             trade_no = form_data.get('TradeNo')
             payment_type = form_data.get('PaymentType')
+            payment_date = form_data.get('PaymentDate')
+            trade_amt = form_data.get('TradeAmt')
+            rtn_msg = form_data.get('RtnMsg')
 
             if merchant_trade_no:
                 order.transaction_id = merchant_trade_no
@@ -439,8 +460,26 @@ def order_result(order_id):
                 if order.status == 'processing':
                     order.status = 'pending'
 
+            payload_store = session.get('order_result_payload', {})
+            payload_store[str(order.id)] = {
+                'merchant_trade_no': merchant_trade_no,
+                'trade_no': trade_no,
+                'payment_type': payment_type,
+                'payment_date': payment_date,
+                'trade_amt': trade_amt,
+                'rtn_code': rtn_code,
+                'rtn_msg': rtn_msg
+            }
+            session['order_result_payload'] = payload_store
+            session.modified = True
+
             db.session.commit()
         return redirect(url_for('frontend.order_result', order_id=order.id))
+
+    payload_store = session.get('order_result_payload', {})
+    result_payload = payload_store.pop(str(order.id), None) if isinstance(payload_store, dict) else None
+    session['order_result_payload'] = payload_store if isinstance(payload_store, dict) else {}
+    session.modified = True
 
     if not current_user.is_authenticated:
         return redirect(url_for('frontend.login', next=request.path))
@@ -449,7 +488,7 @@ def order_result(order_id):
         flash('Access denied', 'error')
         return redirect(url_for('frontend.index'))
 
-    return render_template('frontend/order_result.html', order=order)
+    return render_template('frontend/order_result.html', order=order, result_payload=result_payload)
 
 
 @frontend_bp.route('/profile', methods=['GET', 'POST'])

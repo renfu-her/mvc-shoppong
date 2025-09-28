@@ -1,8 +1,10 @@
 import hashlib
 import urllib.parse
+from urllib.parse import parse_qsl
 import time
 from datetime import datetime
 import json
+import requests
 
 class ECPayService:
     """綠界電子金流服務"""
@@ -16,8 +18,10 @@ class ECPayService:
         # API URLs
         if is_test:
             self.api_url = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
+            self.query_url = "https://payment-stage.ecpay.com.tw/Cashier/QueryTradeInfo/V5"
         else:
             self.api_url = "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5"
+            self.query_url = "https://payment.ecpay.com.tw/Cashier/QueryTradeInfo/V5"
     
     def generate_check_mac_value(self, params):
         """產生檢查碼"""
@@ -71,6 +75,24 @@ class ECPayService:
         params['CheckMacValue'] = self.generate_check_mac_value(params)
         
         return params
+
+    def query_trade_info(self, merchant_trade_no):
+        """Query order status from ECPay"""
+        if not merchant_trade_no:
+            raise ValueError("merchant_trade_no is required")
+
+        payload = {
+            "MerchantID": self.merchant_id,
+            "MerchantTradeNo": merchant_trade_no,
+            "TimeStamp": int(time.time()),
+        }
+        payload["CheckMacValue"] = self.generate_check_mac_value(payload.copy())
+
+        response = requests.post(self.query_url, data=payload, timeout=30)
+        response.raise_for_status()
+
+        return dict(parse_qsl(response.text))
+
     
     def verify_check_mac_value(self, params):
         """驗證檢查碼"""

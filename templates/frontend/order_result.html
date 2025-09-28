@@ -3,171 +3,178 @@
 {% block title %}Order Result - MVC Shopping{% endblock %}
 
 {% block content %}
-<!-- Breadcrumb -->
 <div class="breadcrumb-section">
     <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Order Result</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('frontend.index') }}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Order Result</li>
+            </ol>
+        </nav>
     </div>
 </div>
 
-<!-- Order Result Section -->
+{% set txn = result_payload or {} %}
+{% set rtn_code = txn.get('rtn_code') %}
+{% set rtn_msg = txn.get('rtn_msg') or (order.payment_status == 'paid' and 'Payment completed successfully.') or 'Awaiting payment confirmation.' %}
+{% set merchant_trade_no = txn.get('merchant_trade_no') or order.transaction_id %}
+{% set trade_no = txn.get('trade_no') or order.ecpay_trade_no %}
+{% set payment_type = txn.get('payment_type') or order.payment_method %}
+{% set payment_date = txn.get('payment_date') %}
+{% set trade_amt = txn.get('trade_amt') or ('%.2f'|format(order.total_amount)) %}
+
+{% set is_paid = order.payment_status == 'paid' %}
+{% set is_failed = order.payment_status == 'failed' %}
+{% set is_pending = not is_paid and not is_failed %}
+
 <div class="order-result-section py-5">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="card">
+            <div class="col-lg-9">
+                <div class="card shadow-sm">
                     <div class="card-body p-5">
-                        {% if order.payment_status == 'paid' %}
-                            <div class="text-center mb-4">
-                                <div class="success-icon mb-3">
-                                    <i class="fas fa-check-circle fa-5x text-success"></i>
-                                </div>
-                                <h2 class="text-success mb-3">Payment Successful!</h2>
-                                <p class="text-muted">Thank you for your order. Your payment has been processed successfully.</p>
-                            </div>
+                        {% if is_paid %}
+                        <div class="text-center mb-4">
+                            <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+                            <h2 class="text-success">Payment Successful</h2>
+                            <p class="text-muted mb-0">Thank you! Your order is now being processed.</p>
+                        </div>
+                        {% elif is_failed %}
+                        <div class="text-center mb-4">
+                            <i class="fas fa-times-circle fa-5x text-danger mb-3"></i>
+                            <h2 class="text-danger">Payment Failed</h2>
+                            <p class="text-muted mb-0">{{ rtn_msg }}</p>
+                        </div>
                         {% else %}
-                            <div class="text-center mb-4">
-                                <div class="pending-icon mb-3">
-                                    <i class="fas fa-clock fa-5x text-warning"></i>
-                                </div>
-                                <h2 class="text-warning mb-3">Payment Pending</h2>
-                                <p class="text-muted">Your order has been created but payment is still pending.</p>
-                            </div>
+                        <div class="text-center mb-4">
+                            <i class="fas fa-clock fa-5x text-warning mb-3"></i>
+                            <h2 class="text-warning">Payment Pending</h2>
+                            <p class="text-muted mb-0">{{ rtn_msg }}</p>
+                        </div>
                         {% endif %}
-                        
-                        <!-- Order Details -->
-                        <div class="order-details">
-                            <h4 class="mb-3">Order Details</h4>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td><strong>Order Number:</strong></td>
-                                            <td>{{ order.order_number }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Order Date:</strong></td>
-                                            <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Status:</strong></td>
-                                            <td>
-                                                <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }}">
-                                                    {{ order.payment_status.title() }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        {% if order.ecpay_trade_no %}
-                                        <tr>
-                                            <td><strong>Transaction ID:</strong></td>
-                                            <td>{{ order.ecpay_trade_no }}</td>
-                                        </tr>
-                                        {% endif %}
-                                    </table>
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 bg-light">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Order Summary</h5>
+                                        <table class="table table-borderless align-middle mb-0">
+                                            <tr>
+                                                <td class="text-muted">Order Number</td>
+                                                <td class="fw-semibold">{{ order.order_number }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Created</td>
+                                                <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Order Status</td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if is_paid else 'danger' if is_failed else 'warning text-dark' }}">
+                                                        {{ order.status.title() if order.status else 'Pending' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Payment Status</td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if is_paid else 'danger' if is_failed else 'warning text-dark' }}">
+                                                        {{ order.get_payment_status_display() if order.get_payment_status_display else order.payment_status.title() }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td><strong>Total Amount:</strong></td>
-                                            <td class="fw-bold text-primary">${{ "%.2f"|format(order.total_amount) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Shipping Fee:</strong></td>
-                                            <td>${{ "%.2f"|format(order.shipping_fee) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Shipping Address:</strong></td>
-                                            <td>{{ order.shipping_address_1 }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Phone:</strong></td>
-                                            <td>{{ order.customer_phone }}</td>
-                                        </tr>
-                                    </table>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card h-100 border-0 bg-light">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Payment Information</h5>
+                                        <table class="table table-borderless align-middle mb-0">
+                                            <tr>
+                                                <td class="text-muted">Merchant Trade No</td>
+                                                <td>{{ merchant_trade_no or '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">ECPay Trade No</td>
+                                                <td>{{ trade_no or '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Payment Method</td>
+                                                <td>{{ payment_type or 'N/A' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Payment Time</td>
+                                                <td>{{ payment_date or ('-' if not is_paid else order.updated_at.strftime('%Y-%m-%d %H:%M') if order.updated_at else '-') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Amount</td>
+                                                <td class="fw-semibold text-primary">${{ trade_amt }}</td>
+                                            </tr>
+                                            {% if rtn_code %}
+                                            <tr>
+                                                <td class="text-muted">Gateway Status</td>
+                                                <td>{{ rtn_code }} {{ txn.get('rtn_msg') or '' }}</td>
+                                            </tr>
+                                            {% endif %}
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Order Items -->
+
                         <div class="order-items mt-4">
-                            <h4 class="mb-3">Order Items</h4>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Price</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for item in order.items %}
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    {% if item.product.images %}
-                                                        <img src="{{ item.product.images[0].image_url }}" 
-                                                             alt="{{ item.product.name }}" 
-                                                             class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
-                                                    {% endif %}
-                                                    <div>
-                                                        <h6 class="mb-0">{{ item.product.name }}</h6>
-                                                        <small class="text-muted">SKU: {{ item.product.sku }}</small>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{{ item.quantity }}</td>
-                                            <td>${{ "%.2f"|format(item.unit_price) }}</td>
-                                            <td class="fw-bold">${{ "%.2f"|format(item.total_price) }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                            <h5 class="mb-3">Items in this Order</h5>
+                            <div class="card border-0">
+                                <div class="card-body p-0">
+                                    <table class="table table-striped mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th class="text-center">Quantity</th>
+                                                <th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in order.items %}
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold">{{ item.product_name }}</div>
+                                                    <div class="text-muted small">SKU: {{ item.product_sku }}</div>
+                                                </td>
+                                                <td class="text-center">{{ item.quantity }}</td>
+                                                <td class="text-end">${{ '%.2f'|format(item.total_price) }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        
-                        <!-- Notes -->
-                        {% if order.customer_notes %}
-                        <div class="order-notes mt-4">
-                            <h5>Order Notes</h5>
-                            <p class="text-muted">{{ order.customer_notes }}</p>
+
+                        <div class="mt-4">
+                            <div class="alert {{ 'alert-success' if is_paid else 'alert-warning' if is_pending else 'alert-danger' }}">
+                                <i class="fas {{ 'fa-check-circle' if is_paid else 'fa-clock' if is_pending else 'fa-exclamation-triangle' }} me-2"></i>
+                                {% if is_paid %}
+                                    Your order will move to processing shortly. You can track its progress from your profile.
+                                {% elif is_pending %}
+                                    Payment confirmation may take a few minutes. If you have questions, please contact support with your order number.
+                                {% else %}
+                                    Payment was not completed. You may attempt checkout again or try another payment method.
+                                {% endif %}
+                            </div>
                         </div>
-                        {% endif %}
-                        
-                        <!-- Actions -->
-                        <div class="text-center mt-4">
-                            <a href="{{ url_for('frontend.index') }}" class="btn btn-primary me-2">
-                                <i class="fas fa-home me-2"></i>Continue Shopping
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a class="btn btn-outline-secondary" href="{{ url_for('frontend.shop') }}">
+                                <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
                             </a>
-                            <a href="#" class="btn btn-outline-secondary">
-                                <i class="fas fa-print me-2"></i>Print Receipt
+                            <a class="btn btn-primary" href="{{ url_for('frontend.profile') }}#orders">
+                                <i class="fas fa-receipt me-2"></i>View My Orders
                             </a>
                         </div>
-                        
-                        <!-- Test Information -->
-                        {% if order.payment_status == 'paid' %}
-                        <div class="alert alert-info mt-4">
-                            <h6><i class="fas fa-info-circle me-2"></i>Test Environment Information</h6>
-                            <p class="mb-2">This is a test transaction using ECPay test environment.</p>
-                            <p class="mb-0">
-                                <strong>Test Credit Cards:</strong><br>
-                                • 4311-9511-1111-1111 (Domestic)<br>
-                                • 4311-9522-2222-2222 (Domestic)<br>
-                                • 4000-2011-1111-1111 (Overseas)<br>
-                                <strong>3D Verification SMS Code:</strong> 1234
-                            </p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -185,13 +192,6 @@
 
 .order-result-section {
     background-color: #f8f9fa;
-    min-height: 60vh;
-}
-
-.card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .success-icon, .pending-icon {
@@ -204,29 +204,8 @@
     100% { transform: scale(1); }
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
+.wishlist-label {
     font-weight: 600;
-    transition: transform 0.3s ease;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    color: #495057;
-}
-
-.alert-info {
-    background-color: #e3f2fd;
-    border-color: #bbdefb;
-    color: #1565c0;
 }
 </style>
 {% endblock %}

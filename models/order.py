@@ -91,7 +91,8 @@ class Order(db.Model):
             'shipped': 'Shipped',
             'delivered': 'Delivered',
             'cancelled': 'Cancelled',
-            'refunded': 'Refunded'
+            'refunded': 'Refunded',
+            'failed': 'Failed'
         }
         return status_map.get(self.status, self.status)
     

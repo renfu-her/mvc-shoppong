@@ -282,7 +282,7 @@ def update_order_status(id):
     order = Order.query.get_or_404(id)
     new_status = request.form.get('status')
     
-    if new_status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']:
+    if new_status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'failed']:
         order.status = new_status
         db.session.commit()
         flash('Order status updated successfully', 'success')
