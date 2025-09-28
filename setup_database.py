@@ -6,7 +6,7 @@ This script creates the database and initializes it with sample data
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 # Add the project root to the Python path
@@ -339,13 +339,15 @@ def create_sample_data():
     # Create sample advertisements
     ads_data = [
         {
-            'title': 'Summer Sale',
-            'description': 'Get up to 50% off on all summer items',
+            'title': 'Get up to 50% off Today Only!',
+            'description': 'Dual Camera 20MP - Now $45.00 (was $55.25)',
             'position': 'homepage_banner',
+            'desktop_image': 'images/hero-product.png',
+            'link_url': '/shop',
             'sort_order': 1,
             'is_active': True,
             'start_date': datetime.utcnow(),
-            'end_date': datetime(2024, 12, 31, 23, 59, 59)
+            'end_date': datetime.utcnow() + timedelta(days=365)
         },
         {
             'title': 'New Arrivals',
@@ -376,7 +378,7 @@ def create_sample_data():
             'usage_limit_per_user': 1,
             'is_active': True,
             'start_date': datetime.utcnow(),
-            'end_date': datetime(2024, 12, 31, 23, 59, 59)
+            'end_date': datetime.utcnow() + timedelta(days=365)
         },
         {
             'code': 'SAVE20',
@@ -389,7 +391,7 @@ def create_sample_data():
             'usage_limit_per_user': 1,
             'is_active': True,
             'start_date': datetime.utcnow(),
-            'end_date': datetime(2024, 12, 31, 23, 59, 59)
+            'end_date': datetime.utcnow() + timedelta(days=365)
         }
     ]
     

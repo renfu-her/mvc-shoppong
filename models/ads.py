@@ -108,7 +108,7 @@ class Ads(db.Model):
         home_positions = ['homepage_banner', 'homepage-hero', 'home_banner', 'homepage', 'home-hero']
         now = datetime.utcnow()
 
-        query = Ads.query.filter(
+        base_query = Ads.query.filter(
             db.or_(
                 Ads.position.in_(home_positions),
                 Ads.position.ilike('home%'),
@@ -116,15 +116,23 @@ class Ads(db.Model):
             )
         )
 
-        query = Ads._apply_active_filters(query)
+        active_query = Ads._apply_active_filters(base_query)
 
-        query = query.filter(
-            db.or_(Ads.start_date.is_(None), Ads.start_date <= now),
-            db.or_(Ads.end_date.is_(None), Ads.end_date >= now),
+        image_query = active_query.filter(
             db.or_(Ads.desktop_image.isnot(None), Ads.mobile_image.isnot(None))
         )
 
-        return query.order_by(Ads.sort_order, Ads.created_at.desc()).all()
+        time_filtered_query = image_query.filter(
+            db.or_(Ads.start_date.is_(None), Ads.start_date <= now),
+            db.or_(Ads.end_date.is_(None), Ads.end_date >= now)
+        )
+
+        banners = time_filtered_query.order_by(Ads.sort_order, Ads.created_at.desc()).all()
+        if banners:
+            return banners
+
+        # If all ads are outside the scheduled window, fall back to active ones
+        return image_query.order_by(Ads.sort_order, Ads.created_at.desc()).all()
 
     @staticmethod
     def get_sidebar_ads():
