@@ -34,7 +34,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="wishlist-thumb me-3">
                                     {% if product and product.get_primary_image() %}
-                                    <img src="{{ url_for('static', filename=product.get_primary_image().image_path) }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                    <img src="{{ url_for('static', filename=product.get_primary_image().image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
                                     {% else %}
                                     <div class="placeholder d-flex align-items-center justify-content-center bg-light border rounded" style="width: 80px; height: 80px;">
                                         <i class="fas fa-image text-muted"></i>

@@ -33,41 +33,98 @@ def sync_pending_orders(limit: int = 50):
     service = ECPayService(**ECPAY_TEST_CONFIG)
     now = datetime.utcnow()
 
-    pending = Order.query.filter(Order.payment_status == 'pending').order_by(Order.created_at.asc()).limit(limit).all()
-    if not pending:
-        current_app.logger.debug('No pending orders to sync')
-        return 0
+    pending = (Order.query
+               .filter(Order.payment_status == 'pending')
+               .order_by(Order.created_at.asc())
+               .limit(limit)
+               .all())
 
-    updates = 0
+    results = []
+    updated = 0
+    processed = 0
+    changed = False
+
+    if not pending:
+        return {'updated': 0, 'processed': 0, 'results': results}
 
     for order in pending:
+        processed += 1
+        info = {
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'previous_payment_status': order.payment_status,
+            'previous_status': order.status,
+            'new_payment_status': order.payment_status,
+            'new_status': order.status,
+            'action': 'skipped',
+            'message': None,
+            'payload': None,
+        }
+
         if _should_mark_failed(order, now):
             order.payment_status = 'failed'
             order.status = 'failed'
+            info['action'] = 'auto_failed'
+            info['message'] = 'Past daily cutoff, marked as failed'
             db.session.add(order)
-            updates += 1
+            updated += 1
+            changed = True
+            info['new_payment_status'] = order.payment_status
+            info['new_status'] = order.status
+            results.append(info)
             continue
 
         payload = _query_gateway(order, service)
+        info['payload'] = payload
         if not payload:
+            info['message'] = 'No response from gateway'
+            results.append(info)
             continue
 
         rtn_code = payload.get('RtnCode')
-        if rtn_code in SUCCESS_CODES:
+        trade_status = payload.get('TradeStatus')
+        trade_no = payload.get('TradeNo')
+        merchant_trade_no = payload.get('MerchantTradeNo')
+
+        if rtn_code in SUCCESS_CODES or trade_status == '1':
+            info['action'] = 'marked_paid'
+            info['message'] = payload.get('RtnMsg', 'Payment confirmed')
             order.payment_status = 'paid'
             order.status = 'processing'
-            order.ecpay_trade_no = payload.get('TradeNo') or order.ecpay_trade_no
-            order.transaction_id = payload.get('MerchantTradeNo') or order.transaction_id
+            if trade_no:
+                order.ecpay_trade_no = trade_no
+            if merchant_trade_no:
+                order.transaction_id = merchant_trade_no
+            info['new_payment_status'] = order.payment_status
+            info['new_status'] = order.status
             db.session.add(order)
-            updates += 1
-        elif _should_mark_failed(order, now):
-            order.payment_status = 'failed'
-            order.status = 'failed'
-            db.session.add(order)
-            updates += 1
+            updated += 1
+            changed = True
+        else:
+            info['action'] = 'pending'
+            info['message'] = payload.get('RtnMsg', 'Still pending')
+            if _should_mark_failed(order, now):
+                order.payment_status = 'failed'
+                order.status = 'failed'
+                info['action'] = 'auto_failed'
+                info['message'] = 'Status pending past cutoff, marked failed'
+                info['new_payment_status'] = order.payment_status
+                info['new_status'] = order.status
+                db.session.add(order)
+                updated += 1
+                changed = True
+            else:
+                info['new_payment_status'] = order.payment_status
+                info['new_status'] = order.status
 
-    if updates:
+        results.append(info)
+
+    if changed:
         db.session.commit()
-        current_app.logger.info('Synced %s pending orders via ECPay.', updates)
+        current_app.logger.info('Synced %s pending orders via ECPay.', updated)
 
-    return updates
+    return {
+        'updated': updated,
+        'processed': processed,
+        'results': results,
+    }

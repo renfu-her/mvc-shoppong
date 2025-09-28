@@ -56,8 +56,13 @@ def register_cli_commands(app):
     @click.option('--limit', default=50, show_default=True, help='Maximum pending orders to query per run')
     @with_appcontext
     def sync_pending_orders_command(limit):
-        updated = sync_pending_orders(limit=limit)
-        click.echo(f'Synced {updated} pending orders.')
+        info = sync_pending_orders(limit=limit)
+        updated = info.get('updated', 0) if isinstance(info, dict) else info
+        processed = info.get('processed', 0) if isinstance(info, dict) else None
+        if processed is not None:
+            click.echo(f'Synced {updated} pending orders (processed {processed}).')
+        else:
+            click.echo(f'Synced {updated} pending orders.')
 
 
 if __name__ == '__main__':

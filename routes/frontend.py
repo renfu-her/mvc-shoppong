@@ -477,7 +477,8 @@ def order_result(order_id):
         return redirect(url_for('frontend.order_result', order_id=order.id))
 
     payload_store = session.get('order_result_payload', {})
-    result_payload = payload_store.pop(str(order.id), None) if isinstance(payload_store, dict) else None
+    result_payload = (payload_store.pop(str(order.id), None)
+                      if isinstance(payload_store, dict) else None)
     session['order_result_payload'] = payload_store if isinstance(payload_store, dict) else {}
     session.modified = True
 

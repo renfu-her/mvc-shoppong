@@ -119,6 +119,12 @@
                                                 <td>{{ rtn_code }} {{ txn.get('rtn_msg') or '' }}</td>
                                             </tr>
                                             {% endif %}
+                                            {% if txn.get('TradeStatus') %}
+                                            <tr>
+                                                <td class="text-muted">Trade Status</td>
+                                                <td>{{ txn.get('TradeStatus') }}</td>
+                                            </tr>
+                                            {% endif %}
                                         </table>
                                     </div>
                                 </div>

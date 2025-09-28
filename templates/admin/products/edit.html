@@ -145,7 +145,7 @@
                             {% for image in product.images %}
                             <div class="col-md-6 mb-3">
                                 <div class="card h-100">
-                                    <img src="{{ url_for('static', filename=image.image_path) }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ product.name }}">
+                                    <img src="{{ url_for('static', filename=image.image_path|replace('\\', '/')) }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ product.name }}">
                                     <div class="card-body py-2">
                                         {% if image.is_primary %}
                                         <span class="badge bg-primary">Primary</span>

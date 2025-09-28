@@ -31,7 +31,7 @@
                     <div class="main-image mb-3">
                         {% set primary_image = product.get_primary_image() %}
                         {% if primary_image %}
-                        <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid" id="main-product-image">
+                        <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid" id="main-product-image">
                         {% else %}
                         <div class="product-placeholder text-center py-5">
                             <i class="fas fa-image fa-5x text-muted"></i>
@@ -44,7 +44,7 @@
                         <div class="row">
                             {% for image in product.get_all_images() %}
                             <div class="col-3 mb-2">
-                                <img src="{{ url_for('static', filename=image.image_path) }}" alt="{{ product.name }}" class="img-fluid thumbnail-image {% if image.is_primary %}active{% endif %}" data-main-src="{{ url_for('static', filename=image.image_path) }}">
+                                <img src="{{ url_for('static', filename=image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid thumbnail-image {% if image.is_primary %}active{% endif %}" data-main-src="{{ url_for('static', filename=image.image_path|replace('\\', '/')) }}">
                             </div>
                             {% endfor %}
                         </div>
@@ -367,7 +367,7 @@
                             <div class="product-image">
                                 {% set primary_image = related_product.get_primary_image() %}
                                 {% if primary_image %}
-                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ related_product.name }}" class="img-fluid">
+                                <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ related_product.name }}" class="img-fluid">
                                 {% else %}
                                 <div class="product-placeholder">
                                     <i class="fas fa-image fa-3x"></i>

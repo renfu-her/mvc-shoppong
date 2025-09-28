@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+﻿from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user, login_user, logout_user
 from models import Product, Category, Cart, CartItem, Ads, Coupon, ShippingFee, User
 from models.order import Order, OrderItem
@@ -7,6 +7,8 @@ from utils.helpers import paginate_query, generate_slug, generate_order_number
 from utils.image_utils import process_product_image, process_ad_image, delete_image
 from app import db
 import json
+from datetime import datetime
+from tasks.order_status import sync_pending_orders
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -267,6 +269,38 @@ def orders():
     
     orders = paginate_query(query.order_by(Order.created_at.desc()), page, 20)
     return render_template('admin/orders/list.html', orders=orders)
+
+@admin_bp.route('/tools/pending-orders', methods=['GET', 'POST'])
+@admin_required
+def pending_orders_tool():
+    """Admin tool to inspect and sync pending ECPay orders."""
+    sync_info = None
+    limit_value = 50
+
+    if request.method == 'POST':
+        limit = request.form.get('limit', type=int)
+        limit_value = limit or 50
+        try:
+            sync_info = sync_pending_orders(limit=limit_value)
+            updated = sync_info.get('updated', 0)
+            message_type = 'success' if updated else 'info'
+            flash(f"Synced {updated} pending orders.", message_type)
+        except Exception as exc:
+            current_app.logger.exception('Error syncing pending orders: %s', exc)
+            flash(f"Error syncing pending orders: {exc}", 'error')
+
+    pending_orders = (Order.query
+                      .filter(Order.payment_status == 'pending')
+                      .order_by(Order.created_at.asc())
+                      .all())
+    now = datetime.utcnow()
+
+    return render_template('admin/tools/pending_orders.html',
+                           pending_orders=pending_orders,
+                           sync_info=sync_info,
+                           now=now,
+                           default_limit=limit_value)
+
 
 @admin_bp.route('/orders/<int:id>')
 @admin_required

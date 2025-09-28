@@ -1,0 +1,95 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Pending Orders Sync{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4>Pending ECPay Orders</h4>
+    <p class="text-muted">Trigger a manual sync or review orders still awaiting ECPay confirmation. Any order left pending after 23:59 on the order date is automatically marked failed.</p>
+</div>
+
+<form method="post" class="card mb-4 shadow-sm">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div class="form-group">
+            <label for="limit" class="form-label">Max orders per run</label>
+            <input type="number" class="form-control" id="limit" name="limit" min="1" value="{{ default_limit }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Run Sync Now</button>
+        {% if sync_info %}
+        <span class="badge bg-success">Processed {{ sync_info.processed or 0 }} orders · Updated {{ sync_info.updated or 0 }}</span>
+        {% endif %}
+    </div>
+</form>
+
+{% if sync_info and sync_info.results %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <strong>Last Sync Results</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Action</th>
+                        <th>Status</th>
+                        <th>Gateway Code</th>
+                        <th>Gateway Message</th>
+                        <th class="text-end">Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in sync_info.results %}
+                    <tr>
+                        <td><a href="{{ url_for('admin.order_detail', id=res.order_id) }}">{{ res.order_number }}</a></td>
+                        <td>{{ res.action.replace('_', ' ')|title }}</td>
+                        <td>{{ res.payload.get('RtnCode') if res.payload else '-' }} / {{ res.payload.get('TradeStatus') if res.payload else '-' }}</td>
+                        <td>{{ res.message or '-' }}</td>
+                        <td class="text-end">{{ res.previous_payment_status }} → {{ res.new_payment_status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <strong>Pending Orders ({{ pending_orders|length }})</strong>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                        <th class="text-end">Age (mins)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in pending_orders %}
+                    {% set age_minutes = ((now - order.created_at).total_seconds() // 60)|int if order.created_at else '-' %}
+                    <tr>
+                        <td><a href="{{ url_for('admin.order_detail', id=order.id) }}">{{ order.order_number }}</a></td>
+                        <td>{{ order.customer_email or 'N/A' }}</td>
+                        <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'N/A' }}</td>
+                        <td><span class="badge bg-warning text-dark">{{ order.get_payment_status_display() }}</span></td>
+                        <td class="text-end">{{ age_minutes }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No pending orders 🎉</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

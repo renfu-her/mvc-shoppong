@@ -46,7 +46,7 @@
                                             <div class="product-image me-3">
                                                 {% set primary_image = item.product.get_primary_image() %}
                                                 {% if primary_image %}
-                                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ item.product.name }}" class="img-fluid" style="width: 80px; height: 80px; object-fit: cover;">
+                                                <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ item.product.name }}" class="img-fluid" style="width: 80px; height: 80px; object-fit: cover;">
                                                 {% else %}
                                                 <div class="product-placeholder d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; background-color: #f8f9fa;">
                                                     <i class="fas fa-image text-muted"></i>

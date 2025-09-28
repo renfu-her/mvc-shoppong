@@ -70,7 +70,7 @@
                             <td>
                                 {% set primary_image = product.get_primary_image() %}
                                 {% if primary_image %}
-                                <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid" style="width: 50px; height: 50px; object-fit: cover;">
+                                <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid" style="width: 50px; height: 50px; object-fit: cover;">
                                 {% else %}
                                 <div class="product-placeholder d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background-color: #f8f9fa;">
                                     <i class="fas fa-image text-muted"></i>

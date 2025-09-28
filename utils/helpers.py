@@ -71,14 +71,23 @@ def calculate_discount_percentage(regular_price, sale_price):
     return round(((regular_price - sale_price) / regular_price) * 100)
 
 def generate_order_number():
-    """Generate unique order number"""
-    import random
-    import string
-    
-    # Generate order number like ORD-20231201-ABC123
-    date_str = datetime.now().strftime('%Y%m%d')
-    random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"ORD-{date_str}-{random_str}"
+    """Generate unique order number (ORDER+YYMM+sequence resetting daily)."""
+    today = datetime.utcnow().strftime('%y%m')
+    prefix = f"ORDER{today}"
+
+    from models.order import Order
+    last_order = (Order.query
+                  .filter(Order.order_number.like(f"{prefix}%"))
+                  .order_by(Order.order_number.desc())
+                  .first())
+
+    if last_order and last_order.order_number.startswith(prefix):
+        last_seq = int(last_order.order_number[-4:])
+        next_seq = last_seq + 1
+    else:
+        next_seq = 1
+
+    return f"{prefix}{next_seq:04d}"
 
 def get_client_ip(request):
     """Get client IP address from request"""

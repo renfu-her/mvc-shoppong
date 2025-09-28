@@ -93,7 +93,7 @@ def process_product_image(file, product_id, is_primary=False, sort_order=0):
             generate_thumbnail(webp_path, thumb_path)
             
             # Return relative path for database storage
-            relative_path = os.path.join('uploads', 'products', str(product_id), webp_filename)
+            relative_path = '/'.join(['uploads', 'products', str(product_id), webp_filename])
             return relative_path, None
         else:
             # If WebP conversion failed, remove original and return error
@@ -134,7 +134,7 @@ def process_ad_image(file, ad_id, image_type='desktop'):
             os.remove(original_path)
             
             # Return relative path for database storage
-            relative_path = os.path.join('uploads', 'ads', str(ad_id), webp_filename)
+            relative_path = '/'.join(['uploads', 'ads', str(ad_id), webp_filename])
             return relative_path, None
         else:
             # If processing failed, remove original and return error
@@ -178,7 +178,7 @@ def get_image_url(image_path, thumbnail=False):
             return f"/static/{thumb_path}"
     
     # Return original image
-    return f"/static/{image_path}"
+    return f"/static/{image_path.replace('\\', '/')}"
 
 # Import time for unique filename generation
 import time

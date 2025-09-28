@@ -139,7 +139,7 @@
                                 <div class="product-image">
                                     {% set primary_image = product.get_primary_image() %}
                                     {% if primary_image %}
-                                    <img src="{{ url_for('static', filename=primary_image.image_path) }}" alt="{{ product.name }}" class="img-fluid">
+                                    <img src="{{ url_for('static', filename=primary_image.image_path|replace('\\', '/')) }}" alt="{{ product.name }}" class="img-fluid">
                                     {% else %}
                                     <div class="product-placeholder">
                                         <i class="fas fa-image fa-3x"></i>
