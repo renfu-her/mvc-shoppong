@@ -73,7 +73,27 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div>
                     <h5 class="mb-0">Commerce Insights</h5>
-                    <small class="text-muted">Last 14 days · {{ analysis_range_label }}</small>
+                    <small class="text-muted">Analysis period · <span id="current-range-label">{{ analysis_range_label }}</span></small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Preset buttons -->
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary" data-days="7">7 Days</button>
+                        <button type="button" class="btn btn-outline-secondary active" data-days="14">14 Days</button>
+                        <button type="button" class="btn btn-outline-secondary" data-days="30">30 Days</button>
+                        <button type="button" class="btn btn-outline-secondary" data-days="90">90 Days</button>
+                    </div>
+                    <!-- Date range picker -->
+                    <div class="input-group input-group-sm" style="width: 280px;">
+                        <input type="date" id="start-date" class="form-control" placeholder="Start date">
+                        <span class="input-group-text">to</span>
+                        <input type="date" id="end-date" class="form-control" placeholder="End date">
+                        <button class="btn btn-primary" type="button" id="update-range">Update</button>
+                    </div>
+                    <!-- Loading indicator -->
+                    <div id="chart-loading" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -198,7 +218,114 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
 (function() {
+    // Global variables
+    let orderChart = null;
+    let productChart = null;
+    const chartsToResize = [];
+
+    // Initialize date inputs with current values
+    function initializeDateInputs() {
+        document.getElementById('start-date').value = '{{ start_date }}';
+        document.getElementById('end-date').value = '{{ end_date }}';
+    }
+
+    // Show/hide loading indicator
+    function toggleLoading(show) {
+        const loadingEl = document.getElementById('chart-loading');
+        if (show) {
+            loadingEl.classList.remove('d-none');
+        } else {
+            loadingEl.classList.add('d-none');
+        }
+    }
+
+    // Update charts with new data
+    function updateCharts(orderData, productData) {
+        if (orderChart && orderData.length) {
+            const orderDates = orderData.map(item => item.date);
+            const orderCounts = orderData.map(item => item.orders);
+            const orderRevenue = orderData.map(item => Number(item.revenue || 0));
+
+            orderChart.setOption({
+                xAxis: { data: orderDates },
+                series: [
+                    { data: orderCounts },
+                    { data: orderRevenue }
+                ]
+            });
+        } else if (orderChart) {
+            const orderEl = document.getElementById('order-trend-chart');
+            orderEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
+            orderEl.innerHTML = 'No order activity in the selected window.';
+            orderChart.dispose();
+            orderChart = null;
+        }
+
+        if (productChart && productData.length) {
+            const productNames = productData.map(item => item.name);
+            const productUnits = productData.map(item => item.units);
+            const productRevenue = productData.map(item => Number(item.revenue || 0));
+
+            productChart.setOption({
+                yAxis: { data: productNames },
+                series: [
+                    { data: productUnits },
+                    { data: productRevenue }
+                ]
+            });
+        } else if (productChart) {
+            const productEl = document.getElementById('product-performance-chart');
+            productEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
+            productEl.innerHTML = 'No product sales recorded yet.';
+            productChart.dispose();
+            productChart = null;
+        }
+    }
+
+    // Load data from server
+    function loadChartData(params = {}) {
+        toggleLoading(true);
+        
+        const urlParams = new URLSearchParams(params);
+        const url = '/backend/chart-data?' + urlParams.toString();
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update range label
+                    document.getElementById('current-range-label').textContent = data.analysis_range_label;
+                    
+                    // Update date inputs
+                    document.getElementById('start-date').value = data.start_date;
+                    document.getElementById('end-date').value = data.end_date;
+                    
+                    // Update charts
+                    updateCharts(data.order_chart_data, data.product_chart_data);
+                    
+                    // Initialize charts if they don't exist
+                    if (!orderChart && data.order_chart_data.length) {
+                        initializeOrderChart(data.order_chart_data);
+                    }
+                    if (!productChart && data.product_chart_data.length) {
+                        initializeProductChart(data.product_chart_data);
+                    }
+                } else {
+                    console.error('Error loading chart data:', data.error);
+                    alert('Error loading chart data: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                alert('Network error: ' + error.message);
+            })
+            .finally(() => {
+                toggleLoading(false);
+            });
+    }
+
     const readyHandler = function() {
+        // Initialize with server data
         const orderData = {{ order_chart_data|tojson }};
         const productData = {{ product_chart_data|tojson }};
 
@@ -206,86 +333,164 @@
             return;
         }
 
-        const chartsToResize = [];
+        // Initialize date inputs
+        initializeDateInputs();
 
-        const orderEl = document.getElementById('order-trend-chart');
-        if (orderEl && orderData.length) {
-            const orderChart = echarts.init(orderEl);
-            chartsToResize.push(orderChart);
-            const orderDates = orderData.map(item => item.date);
-            const orderCounts = orderData.map(item => item.orders);
-            const orderRevenue = orderData.map(item => Number(item.revenue || 0));
-
-            orderChart.setOption({
-                backgroundColor: 'transparent',
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: { type: 'shadow' },
-                    formatter: function(params) {
-                        const [ordersPoint, revenuePoint] = params;
-                        const revenueValue = revenuePoint ? revenuePoint.data : 0;
-                        return `${ordersPoint.axisValue}<br/>Orders: ${ordersPoint.data}<br/>Revenue: $${Number(revenueValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    }
-                },
-                legend: { data: ['Orders', 'Revenue'] },
-                grid: { left: '4%', right: '4%', bottom: '6%', top: '12%', containLabel: true },
-                xAxis: { type: 'category', data: orderDates, boundaryGap: true },
-                yAxis: [
-                    { type: 'value', name: 'Orders', minInterval: 1 },
-                    { type: 'value', name: 'Revenue', position: 'right', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
-                ],
-                series: [
-                    { name: 'Orders', type: 'bar', data: orderCounts, barMaxWidth: 26, itemStyle: { color: '#0d6efd' } },
-                    { name: 'Revenue', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 8, data: orderRevenue, itemStyle: { color: '#20c997' } }
-                ]
-            });
-        } else if (orderEl) {
-            orderEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
-            orderEl.innerHTML = 'No order activity in the selected window.';
+        // Initialize charts
+        if (orderData.length) {
+            initializeOrderChart(orderData);
+        }
+        if (productData.length) {
+            initializeProductChart(productData);
         }
 
-        const productEl = document.getElementById('product-performance-chart');
-        if (productEl && productData.length) {
-            const productChart = echarts.init(productEl);
-            chartsToResize.push(productChart);
-            const productNames = productData.map(item => item.name);
-            const productUnits = productData.map(item => item.units);
-            const productRevenue = productData.map(item => Number(item.revenue || 0));
+        // Setup event listeners
+        setupEventListeners();
 
-            productChart.setOption({
-                backgroundColor: 'transparent',
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: { type: 'shadow' },
-                    formatter: function(params) {
-                        const unitsPoint = params.find(p => p.seriesName === 'Units Sold');
-                        const revenuePoint = params.find(p => p.seriesName === 'Revenue');
-                        const units = unitsPoint ? unitsPoint.data : 0;
-                        const revenue = revenuePoint ? revenuePoint.data : 0;
-                        return `${params[0].axisValue}<br/>Units Sold: ${units}<br/>Revenue: $${Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    }
-                },
-                legend: { data: ['Units Sold', 'Revenue'] },
-                grid: { left: '22%', right: '12%', bottom: '6%', top: '12%', containLabel: true },
-                xAxis: [
-                    { type: 'value', name: 'Units', minInterval: 1 },
-                    { type: 'value', name: 'Revenue', position: 'top', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
-                ],
-                yAxis: { type: 'category', data: productNames, inverse: true, axisTick: { alignWithLabel: true } },
-                series: [
-                    { name: 'Units Sold', type: 'bar', xAxisIndex: 0, data: productUnits, barMaxWidth: 18, itemStyle: { color: '#6610f2' } },
-                    { name: 'Revenue', type: 'line', xAxisIndex: 1, data: productRevenue, smooth: true, symbolSize: 8, itemStyle: { color: '#fd7e14' } }
-                ]
-            });
-        } else if (productEl) {
-            productEl.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'text-muted');
-            productEl.innerHTML = 'No product sales recorded yet.';
-        }
-
+        // Setup resize handler
         if (chartsToResize.length) {
             window.addEventListener('resize', () => chartsToResize.forEach(chart => chart.resize()));
         }
     };
+
+    // Initialize order chart
+    function initializeOrderChart(orderData) {
+        const orderEl = document.getElementById('order-trend-chart');
+        if (!orderEl) return;
+
+        // Clear any existing content
+        orderEl.innerHTML = '';
+        orderEl.className = '';
+
+        orderChart = echarts.init(orderEl);
+        chartsToResize.push(orderChart);
+
+        const orderDates = orderData.map(item => item.date);
+        const orderCounts = orderData.map(item => item.orders);
+        const orderRevenue = orderData.map(item => Number(item.revenue || 0));
+
+        orderChart.setOption({
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const [ordersPoint, revenuePoint] = params;
+                    const revenueValue = revenuePoint ? revenuePoint.data : 0;
+                    return `${ordersPoint.axisValue}<br/>Orders: ${ordersPoint.data}<br/>Revenue: $${Number(revenueValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            },
+            legend: { data: ['Orders', 'Revenue'] },
+            grid: { left: '4%', right: '4%', bottom: '10%', top: '12%', containLabel: true },
+            dataZoom: [
+                {
+                    type: 'slider',
+                    show: true,
+                    xAxisIndex: 0,
+                    start: 0,
+                    end: 100,
+                    bottom: '2%'
+                }
+            ],
+            xAxis: { type: 'category', data: orderDates, boundaryGap: true },
+            yAxis: [
+                { type: 'value', name: 'Orders', minInterval: 1 },
+                { type: 'value', name: 'Revenue', position: 'right', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
+            ],
+            series: [
+                { name: 'Orders', type: 'bar', data: orderCounts, barMaxWidth: 26, itemStyle: { color: '#0d6efd' } },
+                { name: 'Revenue', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 8, data: orderRevenue, itemStyle: { color: '#20c997' } }
+            ]
+        });
+    }
+
+    // Initialize product chart
+    function initializeProductChart(productData) {
+        const productEl = document.getElementById('product-performance-chart');
+        if (!productEl) return;
+
+        // Clear any existing content
+        productEl.innerHTML = '';
+        productEl.className = '';
+
+        productChart = echarts.init(productEl);
+        chartsToResize.push(productChart);
+
+        const productNames = productData.map(item => item.name);
+        const productUnits = productData.map(item => item.units);
+        const productRevenue = productData.map(item => Number(item.revenue || 0));
+
+        productChart.setOption({
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const unitsPoint = params.find(p => p.seriesName === 'Units Sold');
+                    const revenuePoint = params.find(p => p.seriesName === 'Revenue');
+                    const units = unitsPoint ? unitsPoint.data : 0;
+                    const revenue = revenuePoint ? revenuePoint.data : 0;
+                    return `${params[0].axisValue}<br/>Units Sold: ${units}<br/>Revenue: $${Number(revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            },
+            legend: { data: ['Units Sold', 'Revenue'] },
+            grid: { left: '22%', right: '12%', bottom: '6%', top: '12%', containLabel: true },
+            xAxis: [
+                { type: 'value', name: 'Units', minInterval: 1 },
+                { type: 'value', name: 'Revenue', position: 'top', axisLabel: { formatter: value => '$' + Number(value).toLocaleString() } }
+            ],
+            yAxis: { type: 'category', data: productNames, inverse: true, axisTick: { alignWithLabel: true } },
+            series: [
+                { name: 'Units Sold', type: 'bar', xAxisIndex: 0, data: productUnits, barMaxWidth: 18, itemStyle: { color: '#6610f2' } },
+                { name: 'Revenue', type: 'line', xAxisIndex: 1, data: productRevenue, smooth: true, symbolSize: 8, itemStyle: { color: '#fd7e14' } }
+            ]
+        });
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Preset buttons
+        document.querySelectorAll('[data-days]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('[data-days]').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Load data for specified days
+                const days = parseInt(this.getAttribute('data-days'));
+                loadChartData({ days: days });
+            });
+        });
+
+        // Date range update button
+        document.getElementById('update-range').addEventListener('click', function() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date must be before end date.');
+                return;
+            }
+            
+            // Remove active state from preset buttons
+            document.querySelectorAll('[data-days]').forEach(btn => btn.classList.remove('active'));
+            
+            // Load data for custom date range
+            loadChartData({ 
+                start_date: startDate, 
+                end_date: endDate 
+            });
+        });
+
+        // Date input validation
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('end-date').setAttribute('max', today);
+    }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', readyHandler);
