@@ -127,6 +127,31 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3>日期輸入欄位測試</h3>
+                <p>測試日期輸入欄位的完整顯示：</p>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="input-group input-group-sm date-range-picker">
+                        <input type="date" id="test-start-date" class="form-control date-input" value="2025-09-16">
+                        <span class="input-group-text">to</span>
+                        <input type="date" id="test-end-date" class="form-control date-input" value="2025-09-29">
+                        <button class="btn btn-primary" type="button" onclick="testDateInput()">Update</button>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <strong>改進說明：</strong><br>
+                    • 日期輸入欄位寬度從 280px 增加到 350px<br>
+                    • 每個日期輸入欄位最小寬度 120px<br>
+                    • 支援完整日期格式顯示 (YYYY-MM-DD)<br>
+                    • 響應式設計：手機版自動調整為 100% 寬度<br>
+                    • 修復圖表與日期選擇器重疊問題<br>
+                    • 圖表高度從 320px 增加到 360px<br>
+                    • ECharts grid 底部間距調整為 18%
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-12">
                 <h3>互動測試</h3>
@@ -151,6 +176,23 @@
                 rangeLabel.textContent = newDate;
                 rangeLabel.style.transform = 'scale(1)';
             }, 200);
+        }
+
+        function testDateInput() {
+            const startDate = document.getElementById('test-start-date').value;
+            const endDate = document.getElementById('test-end-date').value;
+            
+            console.log('測試日期輸入：');
+            console.log('開始日期:', startDate);
+            console.log('結束日期:', endDate);
+            
+            if (startDate && endDate) {
+                const formattedRange = `${startDate} - ${endDate}`;
+                updateDate(formattedRange);
+                alert(`日期範圍已更新為：${formattedRange}`);
+            } else {
+                alert('請選擇開始和結束日期');
+            }
         }
 
         // Test hover effects
