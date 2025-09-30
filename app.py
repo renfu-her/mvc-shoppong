@@ -25,10 +25,6 @@ def create_app():
         from models import User
         return User.query.get(int(user_id))
     
-    # Import models to register them with SQLAlchemy
-    from models import User, Category, Product, ProductImage, Cart, CartItem, Ads, Coupon, ShippingFee, WishList
-    from models.order import Order, OrderItem
-    
     # Create upload directories
     os.makedirs('static/uploads/products', exist_ok=True)
     os.makedirs('static/uploads/ads', exist_ok=True)
